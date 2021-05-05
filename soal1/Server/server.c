@@ -6,9 +6,11 @@
 #include <sys/epoll.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <stdbool.h>
+#include <sys/ioctl.h>
 
 #define DATA_BUFFER 500
-#define MAX_CONNECTIONS 5
+#define MAX_CONNECTIONS 10
 #define SUCCESS_MESSAGE "Your message delivered successfully"
 #define NOTVALID_MESSAGE "Tidak dapat terkoneksi dengan server. Tunggu client lain disconnect terlebih dahulu\n"
 
@@ -19,6 +21,7 @@ void setup_epoll_connection(int epfd, int fd, struct epoll_event *event);
 void *handleIO(void *_fd);
 void command(char *cmd, int fd);
 void regist(char *buf, int fd);
+void getInput(char *buf, int fd);
 
 int main()
 {
@@ -27,9 +30,10 @@ int main()
     struct epoll_event connections[MAX_CONNECTIONS], epoll_temp;
     pthread_t tid;
     char buf[DATA_BUFFER];
-    int server_fd, new_fd, ret_val, temp_fd;
+    int server_fd, new_fd, ret_val, temp_fd, temp_ret_val;
     int timeout_msecs = 1500;
     int epfd = epoll_create(1);
+    bool first = true;
     
     /* Get the socket server fd */
     server_fd = create_tcp_server_socket();
@@ -52,11 +56,12 @@ int main()
                     } 
                     else if (recv(curr_fd, buf, DATA_BUFFER, MSG_PEEK | MSG_DONTWAIT) != 0) { // A client is logged in
                         send(new_fd, NOTVALID_MESSAGE, sizeof(NOTVALID_MESSAGE), 0);
-                        printf("Disconnect connection with fd: %d\n", new_fd);
+                        printf("Reject connection with fd: %d\n", new_fd);
                         close(new_fd);
                     } 
                     else { // No client is logged in
                         curr_fd = new_fd;
+                        pthread_create(&tid, NULL, &handleIO, (void *) &connections[i].data.fd);
                     }
                 } else {
                     fprintf(stderr, "accept failed [%s]\n", strerror(errno));
@@ -64,7 +69,17 @@ int main()
             } // Get input from connection
             else if (connections[i].events & EPOLLIN) {
                 if ((temp_fd = connections[i].data.fd) < 0) continue;
-                pthread_create(&tid, NULL, &handleIO, (void *) &connections[i].data.fd);
+                temp_ret_val = recv(connections[i].data.fd, buf, DATA_BUFFER, MSG_PEEK | MSG_DONTWAIT);
+
+                if (temp_ret_val > 0 && first) {
+                    pthread_create(&tid, NULL, &handleIO, (void *) &connections[i].data.fd);
+                    first = false;
+                }
+                else if (temp_ret_val == 0) {
+                    close(curr_fd);
+                    curr_fd = -1;
+                    first = true;
+                }
             }
         }
     } /* while(1) */
@@ -78,28 +93,33 @@ int main()
     return 0;
 }
 
+void getInput(char *buf, int fd)
+{
+    int count;
+    ioctl(fd, FIONREAD, &count);
+    count /= DATA_BUFFER;
+    for (int i = 0; i <= count; i++) {
+        recv(fd, buf, DATA_BUFFER, 0);
+    }
+}
+
 void *handleIO(void *_fd)
 {
     char buf[DATA_BUFFER];
+    int ret_val;
     int fd = *(int *) _fd;
-    int ret_val = recv(fd, buf, DATA_BUFFER, MSG_PEEK | MSG_DONTWAIT);
 
-    if (ret_val > 0) {
-        ret_val = recv(fd, buf, DATA_BUFFER, 0);
-        // printf("Returned fd is %d\n", fd);
-        printf("Received data (len %d bytes, fd: %d): %s\n", ret_val, fd, buf);
-        fflush(stdin);
-        command(buf, fd);
-    }
-    else if (ret_val == 0) {
-        close(curr_fd);
-        curr_fd = -1;
-    }
+    strcpy(buf, "Pilih input:\n1. Login\n2. Register\n");
+    send(fd, buf, sizeof(buf), 0);
+    getInput(buf, fd);
+    // printf("Returned fd is %d\n", fd);
+    printf("Received data (len: %d, fd: %d): %s\n", ret_val, fd, buf);
+    command(buf, fd);
 }
 
 void command(char *cmd, int fd)
 {
-    if (strcmp(cmd, "register") == 0 || strcmp(cmd, "1") == 0) {
+    if (strcmp(cmd, "register") == 0 || strcmp(cmd, "2") == 0) {
         return regist(cmd, fd);
     }
 }
@@ -110,12 +130,12 @@ void regist(char *buf, int fd)
 
     strcpy(id, "Masukan id: ");
     send(fd, id, sizeof(id), 0);
-    recv(fd, id, DATA_BUFFER, 0);
+    getInput(id, fd);
     printf("Received id (fd: %d): %s\n", fd, id);
 
-    strcpy(password, "Masukan id: ");
+    strcpy(password, "Masukan password: ");
     send(fd, password, sizeof(password), 0);
-    recv(fd, password, DATA_BUFFER, 0);
+    getInput(password, fd);
     printf("Received password (fd: %d): %s\n", fd, password);
 }
 
