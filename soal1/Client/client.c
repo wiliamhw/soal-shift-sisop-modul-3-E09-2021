@@ -1,30 +1,60 @@
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include <pthread.h>
+#include <stdlib.h>
+
+#define NOTVALID_MESSAGE "Tidak dapat terkoneksi dengan server. Tunggu client lain disconnect terlebih dahulu\n"
+
+int client_fd;
 
 int create_tcp_client_socket();
+void *handleInput();
+void *handleOutput();
 
 int main()
 {
-    char message[1000];
-    int ret_val;
-    int client_fd = create_tcp_client_socket();
+    pthread_t tid[2];
+    client_fd = create_tcp_client_socket();
 
-    while (1) {
-        /* Next step: send some data */
-        gets(message);
-        ret_val = send(client_fd, message, sizeof(message), 0);
-        printf("Successfully sent data (len %d bytes): %s\n",
-               ret_val, message);
-        ret_val = recv(client_fd, message, sizeof(message));
-        puts(message);
-    }
+    pthread_create(&(tid[0]), NULL, &handleOutput, NULL);
+    pthread_create(&(tid[1]), NULL, &handleInput, NULL);
 
-    /* Last step: close the socket */
+    sleep(1);
+    printf("Pilih input:\n1. Login\n2. Register\n");
+
+    pthread_join(tid[0], NULL);
+    pthread_join(tid[1], NULL);
+
     close(client_fd);
     return 0;
+}
+
+void *handleInput(void *_fd)
+{
+    char message[1000];
+    while (1) {
+        gets(message);
+        send(client_fd, message, sizeof(message), 0);
+        // printf("\nSuccessfully sent data: %s\n", message);
+    }
+}
+
+void *handleOutput(void *_fd) 
+{
+    char message[1000];
+
+    while (1) {
+        recv(client_fd, message, sizeof(message), 0);
+        printf("%s", message);
+
+        if (strcmp(message, NOTVALID_MESSAGE) == 0) {
+            exit(EXIT_SUCCESS);
+        }
+    }
 }
 
 int create_tcp_client_socket()

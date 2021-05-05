@@ -5,24 +5,31 @@
 #include <errno.h>
 #include <sys/epoll.h>
 #include <stdlib.h>
+#include <pthread.h>
 
-#define DATA_BUFFER 1000
-#define MAX_CONNECTIONS 10
+#define DATA_BUFFER 500
+#define MAX_CONNECTIONS 5
 #define SUCCESS_MESSAGE "Your message delivered successfully"
-#define NOTVALID_MESSAGE "Unable to login until the current logged-in client logged out from the system"
+#define NOTVALID_MESSAGE "Tidak dapat terkoneksi dengan server. Tunggu client lain disconnect terlebih dahulu\n"
+
+int curr_fd = -1;
 
 int create_tcp_server_socket();
 void setup_epoll_connection(int epfd, int fd, struct epoll_event *event);
+void *handleIO(void *_fd);
+void command(char *cmd, int fd);
+void regist(char *buf, int fd);
 
 int main()
 {
     socklen_t addrlen;
     struct sockaddr_in new_addr;
     struct epoll_event connections[MAX_CONNECTIONS], epoll_temp;
-    int server_fd, new_fd, ret_val, temp_fd, curr_fd = -1;
+    pthread_t tid;
+    char buf[DATA_BUFFER];
+    int server_fd, new_fd, ret_val, temp_fd;
     int timeout_msecs = 1500;
     int epfd = epoll_create(1);
-    char buf[DATA_BUFFER];
     
     /* Get the socket server fd */
     server_fd = create_tcp_server_socket();
@@ -30,16 +37,12 @@ int main()
 
     while (1) {
         ret_val = epoll_wait(epfd, connections, MAX_CONNECTIONS, timeout_msecs /*timeout*/);
-        printf("Epoll wait ret_val: %d\n", ret_val);
 
         for (int i = 0; i < ret_val; i++) {
-            printf("Connetions on %d index with fd: %d\n", i, connections[i].data.fd);
 
             // Make new connection
             if (connections[i].data.fd == server_fd) {
                 new_fd = accept(server_fd, (struct sockaddr *)&new_addr, &addrlen);
-                printf("New_fd: %d\n", new_fd);
-
                 if (new_fd >= 0) {
                     setup_epoll_connection(epfd, new_fd, &epoll_temp);
                     printf("Accepted a new connection with fd: %d\n", new_fd);
@@ -47,8 +50,9 @@ int main()
                     if (curr_fd == -1) { // Initialize curr_fd
                         curr_fd = new_fd;
                     } 
-                    else if (recv(curr_fd, buf, DATA_BUFFER, MSG_PEEK | MSG_DONTWAIT) != 0) { // Logged in
+                    else if (recv(curr_fd, buf, DATA_BUFFER, MSG_PEEK | MSG_DONTWAIT) != 0) { // A client is logged in
                         send(new_fd, NOTVALID_MESSAGE, sizeof(NOTVALID_MESSAGE), 0);
+                        printf("Disconnect connection with fd: %d\n", new_fd);
                         close(new_fd);
                     } 
                     else { // No client is logged in
@@ -59,22 +63,8 @@ int main()
                 }
             } // Get input from connection
             else if (connections[i].events & EPOLLIN) {
-                printf("EPOLLIN section\n");
-
                 if ((temp_fd = connections[i].data.fd) < 0) continue;
-
-                ret_val = recv(connections[i].data.fd, buf, DATA_BUFFER, 0);
-                printf("EPPLOIN recv: %d\n", ret_val);
-
-                if (ret_val > 0) {
-                    printf("Returned fd is %d [index, i: %d]\n", connections[i].data.fd, i);
-                    printf("Received data (len %d bytes, fd: %d): %s\n", ret_val, connections[i].data.fd, buf);
-                    ret_val = send(connections[i].data.fd, SUCCESS_MESSAGE, sizeof(SUCCESS_MESSAGE), 0);
-                }
-                else if (ret_val == 0) {
-                    close(curr_fd);
-                    curr_fd = -1;
-                }
+                pthread_create(&tid, NULL, &handleIO, (void *) &connections[i].data.fd);
             }
         }
     } /* while(1) */
@@ -88,6 +78,46 @@ int main()
     return 0;
 }
 
+void *handleIO(void *_fd)
+{
+    char buf[DATA_BUFFER];
+    int fd = *(int *) _fd;
+    int ret_val = recv(fd, buf, DATA_BUFFER, MSG_PEEK | MSG_DONTWAIT);
+
+    if (ret_val > 0) {
+        ret_val = recv(fd, buf, DATA_BUFFER, 0);
+        // printf("Returned fd is %d\n", fd);
+        printf("Received data (len %d bytes, fd: %d): %s\n", ret_val, fd, buf);
+        fflush(stdin);
+        command(buf, fd);
+    }
+    else if (ret_val == 0) {
+        close(curr_fd);
+        curr_fd = -1;
+    }
+}
+
+void command(char *cmd, int fd)
+{
+    if (strcmp(cmd, "register") == 0 || strcmp(cmd, "1") == 0) {
+        return regist(cmd, fd);
+    }
+}
+
+void regist(char *buf, int fd)
+{
+    char id[DATA_BUFFER], password[DATA_BUFFER];
+
+    strcpy(id, "Masukan id: ");
+    send(fd, id, sizeof(id), 0);
+    recv(fd, id, DATA_BUFFER, 0);
+    printf("Received id (fd: %d): %s\n", fd, id);
+
+    strcpy(password, "Masukan id: ");
+    send(fd, password, sizeof(password), 0);
+    recv(fd, password, DATA_BUFFER, 0);
+    printf("Received password (fd: %d): %s\n", fd, password);
+}
 
 int create_tcp_server_socket()
 {
