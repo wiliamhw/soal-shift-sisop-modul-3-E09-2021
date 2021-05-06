@@ -37,7 +37,6 @@
    3. Pastikan data akun yang diinput client ada di `akun.txt`
       * Jika tidak ada, batalkan login
    4. Sambungkan client dengan server.
-
 <br><br>
 
 # Soal 2

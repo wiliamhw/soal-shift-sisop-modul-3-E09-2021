@@ -70,7 +70,7 @@ void *routes(void *argv)
 
     while (recv(fd, cmd, DATA_BUFFER, MSG_PEEK | MSG_DONTWAIT) != 0) {
         send(fd, "\nSelect command:\n1. Login\n2. Register\n", DATA_BUFFER, 0);
-        if (getInput(cmd, fd) == 0) return NULL;
+        if (getInput(cmd, fd) == 0) break;
 
         if (strcmp(cmd, "login") == 0 || strcmp(cmd, "1") == 0) {
             login(cmd, fd);
