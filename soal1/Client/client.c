@@ -36,7 +36,7 @@ void *handleInput(void *_fd)
     while (1) {
         scanf("%s", message);
         send(client_fd, message, sizeof(message), 0);
-        printf("Successfully sent data: %s\n", message);
+        // printf("Successfully sent data: %s\n", message);
     }
 }
 
