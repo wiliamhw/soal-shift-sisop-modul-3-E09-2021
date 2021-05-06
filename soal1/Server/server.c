@@ -16,11 +16,10 @@
 #define SELECT_PROS "\nSelect command:\n1. Login\n2. Register\n"
 
 int curr_fd = -1;
-bool isLogged = false;
 
 int create_tcp_server_socket();
 void setup_epoll_connection(int epfd, int fd, struct epoll_event *event);
-void command(char *cmd, int fd);
+void *command(void *argv);
 int getInput(char *buf, int fd);
 
 bool isRegistered(FILE *fp, char *id);
@@ -34,7 +33,7 @@ int main()
     struct sockaddr_in new_addr;
     struct epoll_event connections[MAX_CONNECTIONS], epoll_temp;
     pthread_t tid;
-    char buf[DATA_BUFFER];
+    char buf[DATA_BUFFER], argv[DATA_BUFFER + 2];
     int server_fd, new_fd, ret_val, temp_fd, temp_ret_val;
     int timeout_msecs = 1500;
     int epfd = epoll_create(1);
@@ -54,31 +53,9 @@ int main()
                 if (new_fd >= 0) {
                     setup_epoll_connection(epfd, new_fd, &epoll_temp);
                     printf("Accepted a new connection with fd: %d\n", new_fd);
-
-                    // Initialize curr_fd or if no client is logging
-                    if (curr_fd == -1 || recv(curr_fd, buf, DATA_BUFFER, MSG_PEEK | MSG_DONTWAIT) == 0) {
-                        curr_fd = new_fd;
-                    }
-                    send(new_fd, SELECT_PROS, sizeof(SELECT_PROS), 0);
+                    pthread_create(&tid, NULL, &command, (void *) &new_fd);
                 } else {
                     fprintf(stderr, "accept failed [%s]\n", strerror(errno));
-                }
-            } // Get input from connection
-            else if (connections[i].events & EPOLLIN) {
-                if ((temp_fd = connections[i].data.fd) < 0) continue;
-
-                temp_ret_val = recv(connections[i].data.fd, buf, DATA_BUFFER, 0);;
-
-                if (strcmp(buf, "") == 0) continue;
-                if (temp_ret_val > 0) {
-                    command(buf, connections[i].data.fd);
-                }
-                else if (temp_ret_val == 0) {
-                    if (connections[i].data.fd == curr_fd) {
-                        curr_fd = -1;
-                        isLogged = false;
-                    }
-                    close(connections[i].data.fd);
                 }
             }
         }
@@ -104,20 +81,32 @@ int getInput(char *buf, int fd)
     return ret_val;
 }
 
-void command(char *cmd, int fd)
+void *command(void *argv)
 {
-    if (strcmp(cmd, "login") == 0 || strcmp(cmd, "1") == 0) {
-        if (fd == curr_fd) {
-            logReg(cmd, fd, true);
+    int fd = *(int *) argv;
+    char cmd[DATA_BUFFER];
+    int retval;
+
+    while (recv(fd, cmd, DATA_BUFFER, MSG_PEEK | MSG_DONTWAIT) != 0) {
+        send(fd, SELECT_PROS, sizeof(SELECT_PROS), 0);
+        getInput(cmd, fd);
+        if (strcmp(cmd, "login") == 0 || strcmp(cmd, "1") == 0) {
+            if (curr_fd == -1) {
+                logReg(cmd, fd, true);
+            } else {
+                send(fd, "Server is busy. Wait until other client has logout.\n", sizeof(char) * DATA_BUFFER, 0);
+            }
+        } else if (strcmp(cmd, "register") == 0 || strcmp(cmd, "2") == 0) {
+            logReg(cmd, fd, false);
         } else {
-            send(fd, "Server is busy. Wait until other client has logout.\n", sizeof(char) * DATA_BUFFER, 0);
+            send(fd, "Invalid command\n", sizeof(char) * 20, 0);
         }
-    } else if (strcmp(cmd, "register") == 0 || strcmp(cmd, "2") == 0) {
-        logReg(cmd, fd, false);
-    } else {
-        send(fd, "Invalid command\n", sizeof(char) * 20, 0);
+        sleep(0.001);
     }
-    send(fd, SELECT_PROS, sizeof(SELECT_PROS), 0);
+    if (fd == curr_fd) {
+        curr_fd = -1;
+    }
+    close(fd);
 }
 
 void logReg(char *buf, int fd, bool isLogin)
@@ -140,7 +129,7 @@ void logReg(char *buf, int fd, bool isLogin)
         if (isValid(fp, id, password)) {
             strcpy(path, "Login success\n");
             send(fd, path, sizeof(path), 0);
-            isLogged = true;
+            curr_fd = fd;
         } else {
             strcpy(path, "Wrong id or password\n");
             send(fd, path, sizeof(path), 0);
@@ -156,6 +145,7 @@ void logReg(char *buf, int fd, bool isLogin)
         }
     }
     fclose(fp);
+    return;
 }
 
 bool isValid(FILE *fp, char *id, char *password)
