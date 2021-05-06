@@ -46,6 +46,7 @@ void *handleOutput(void *_fd)
 
     while (1) {
         if (recv(client_fd, message, sizeof(message), 0) == 0) {
+            printf("Server shutdown\n");
             exit(EXIT_SUCCESS);
         }
         printf("%s", message);

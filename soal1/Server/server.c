@@ -11,21 +11,25 @@
 
 #define DATA_BUFFER 500
 #define MAX_CONNECTIONS 10
-#define SUCCESS_MESSAGE "Your message delivered successfully"
 #define CURR_DIR "/home/frain8/Documents/Sisop/Modul_3/soal_shift_3/soal1/Server"
-#define SELECT_PROS "\nSelect command:\n1. Login\n2. Register\n"
 
 int curr_fd = -1;
+const int SIZE_BUFFER = sizeof(char) * DATA_BUFFER;
 
+// Essential
 int create_tcp_server_socket();
 void setup_epoll_connection(int epfd, int fd, struct epoll_event *event);
-void *command(void *argv);
-int getInput(char *buf, int fd);
+void *routes(void *argv);
 
+// Controller
+void login(char *buf, int fd);
+void regist(char *buf, int fd);
+
+// Helper
+int getInput(char *buf, int fd);
+int getCredentials(int fd, char *id, char *password);
 bool isRegistered(FILE *fp, char *id);
 bool isValid(FILE *fp, char *id, char *password);
-
-void logReg(char *buf, int fd, bool isLogin);
 
 int main()
 {
@@ -34,70 +38,44 @@ int main()
     struct epoll_event connections[MAX_CONNECTIONS], epoll_temp;
     pthread_t tid;
     char buf[DATA_BUFFER], argv[DATA_BUFFER + 2];
-    int server_fd, new_fd, ret_val, temp_fd, temp_ret_val;
+    int new_fd, ret_val, temp_fd, temp_ret_val;
+
     int timeout_msecs = 1500;
     int epfd = epoll_create(1);
-    
-    /* Get the socket server fd */
-    server_fd = create_tcp_server_socket();
+    int server_fd = create_tcp_server_socket();
     setup_epoll_connection(epfd, server_fd, &epoll_temp);
 
     while (1) {
         ret_val = epoll_wait(epfd, connections, MAX_CONNECTIONS, timeout_msecs /*timeout*/);
-
         for (int i = 0; i < ret_val; i++) {
-
-            // Make new connection
             if (connections[i].data.fd == server_fd) {
                 new_fd = accept(server_fd, (struct sockaddr *)&new_addr, &addrlen);
                 if (new_fd >= 0) {
                     setup_epoll_connection(epfd, new_fd, &epoll_temp);
                     printf("Accepted a new connection with fd: %d\n", new_fd);
-                    pthread_create(&tid, NULL, &command, (void *) &new_fd);
+                    pthread_create(&tid, NULL, &routes, (void *) &new_fd);
                 } else {
-                    fprintf(stderr, "accept failed [%s]\n", strerror(errno));
+                    fprintf(stderr, "Accept failed [%s]\n", strerror(errno));
                 }
             }
         }
     } /* while(1) */
-
-    /* Last step: Close all the sockets */
-    for (int i = 0; i < MAX_CONNECTIONS; i++) {
-        if (connections[i].data.fd > 0) {
-            close(connections[i].data.fd);
-        }
-    }
     return 0;
 }
 
-int getInput(char *buf, int fd)
-{
-    int count, ret_val;
-    ioctl(fd, FIONREAD, &count);
-    count /= DATA_BUFFER;
-    for (int i = 0; i <= count; i++) {
-        ret_val = recv(fd, buf, DATA_BUFFER, 0);
-    }
-    return ret_val;
-}
-
-void *command(void *argv)
+void *routes(void *argv)
 {
     int fd = *(int *) argv;
     char cmd[DATA_BUFFER];
-    int retval;
 
     while (recv(fd, cmd, DATA_BUFFER, MSG_PEEK | MSG_DONTWAIT) != 0) {
-        send(fd, SELECT_PROS, sizeof(SELECT_PROS), 0);
-        getInput(cmd, fd);
+        send(fd, "\nSelect command:\n1. Login\n2. Register\n", DATA_BUFFER, 0);
+        if (getInput(cmd, fd) == 0) return NULL;
+
         if (strcmp(cmd, "login") == 0 || strcmp(cmd, "1") == 0) {
-            if (curr_fd == -1) {
-                logReg(cmd, fd, true);
-            } else {
-                send(fd, "Server is busy. Wait until other client has logout.\n", sizeof(char) * DATA_BUFFER, 0);
-            }
+            login(cmd, fd);
         } else if (strcmp(cmd, "register") == 0 || strcmp(cmd, "2") == 0) {
-            logReg(cmd, fd, false);
+            regist(cmd, fd);
         } else {
             send(fd, "Invalid command\n", sizeof(char) * 20, 0);
         }
@@ -109,43 +87,64 @@ void *command(void *argv)
     close(fd);
 }
 
-void logReg(char *buf, int fd, bool isLogin)
+void login(char *buf, int fd)
 {
-    char id[DATA_BUFFER], password[DATA_BUFFER], path[DATA_BUFFER];
-    sprintf(path, "%s/%s", CURR_DIR, "akun.txt");
-    FILE *fp = fopen(path, "a+");
+    if (curr_fd != -1) {
+        send(fd, "Server is busy. Wait until other client has logout.\n", SIZE_BUFFER, 0);
+        return;
+    }
+    char id[DATA_BUFFER], password[DATA_BUFFER];
+    sprintf(buf, "%s/%s", CURR_DIR, "akun.txt");
 
-    strcpy(id, "Insert id: ");
-    send(fd, id, sizeof(id), 0);
-    if (getInput(id, fd) == 0) return;
-    printf("Received id (fd: %d): %s\n", fd, id);
+    FILE *fp = fopen(buf, "a+");
+    if (getCredentials(fd, id, password) == 0) return;
 
-    strcpy(password, "Insert password: ");
-    send(fd, password, sizeof(password), 0);
-    if (getInput(password, fd) == 0) return;
-    printf("Received password (fd: %d): %s\n", fd, password);
-
-    if (isLogin) {
-        if (isValid(fp, id, password)) {
-            strcpy(path, "Login success\n");
-            send(fd, path, sizeof(path), 0);
-            curr_fd = fd;
-        } else {
-            strcpy(path, "Wrong id or password\n");
-            send(fd, path, sizeof(path), 0);
-        }
+    if (isValid(fp, id, password)) {
+        send(fd, "Login success\n", SIZE_BUFFER, 0);
+        curr_fd = fd;
     } else {
-        if (isRegistered(fp, id)) {
-            strcpy(path, "Id is already registered\n");
-            send(fd, path, sizeof(path), 0);
-        } else {
-            fprintf(fp, "%s:%s\n", id, password);
-            strcpy(path, "Register success\n");
-            send(fd, path, sizeof(path), 0);
-        }
+        send(fd, "Wrong id or password\n", SIZE_BUFFER, 0);
     }
     fclose(fp);
-    return;
+}
+
+void regist(char *buf, int fd)
+{
+    char id[DATA_BUFFER], password[DATA_BUFFER];
+    sprintf(buf, "%s/%s", CURR_DIR, "akun.txt");
+
+    FILE *fp = fopen(buf, "a+");
+    if (getCredentials(fd, id, password) == 0) return;
+
+    if (isRegistered(fp, id)) {
+        send(fd, "Id is already registered\n", SIZE_BUFFER, 0);
+    } else {
+        fprintf(fp, "%s:%s\n", id, password);
+        send(fd, "Register success\n", SIZE_BUFFER, 0);
+    }
+    fclose(fp);
+}
+
+int getCredentials(int fd, char *id, char *password)
+{
+    send(fd, "Insert id: ", SIZE_BUFFER, 0);
+    if (getInput(id, fd) == 0) return 0;
+    send(fd, "Insert password: ", SIZE_BUFFER, 0);
+    if (getInput(password, fd) == 0) return 0;
+    return 1;
+}
+
+int getInput(char *buf, int fd)
+{
+    int count, ret_val;
+    ioctl(fd, FIONREAD, &count);
+    count /= DATA_BUFFER;
+    for (int i = 0; i <= count; i++) {
+        ret_val = recv(fd, buf, DATA_BUFFER, 0);
+        if (ret_val == 0)
+            break;
+    }
+    return ret_val;
 }
 
 bool isValid(FILE *fp, char *id, char *password)
