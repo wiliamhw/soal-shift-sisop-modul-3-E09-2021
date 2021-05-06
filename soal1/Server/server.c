@@ -1,13 +1,14 @@
 #include <stdio.h>
-#include <netinet/in.h>
+#include <stdbool.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
-#include <sys/epoll.h>
-#include <stdlib.h>
 #include <pthread.h>
-#include <stdbool.h>
+#include <sys/stat.h>
+#include <sys/epoll.h>
 #include <sys/ioctl.h>
+#include <netinet/in.h>
 
 #define DATA_BUFFER 500
 #define MAX_CONNECTIONS 10
@@ -24,10 +25,13 @@ void *routes(void *argv);
 // Controller
 void login(char *buf, int fd);
 void regist(char *buf, int fd);
+void add(char *buf, int fd);
 
 // Helper
-int getInput(char *buf, int fd);
+int getInput(int fd, char *prompt, char *storage);
 int getCredentials(int fd, char *id, char *password);
+int writeFile(int fd, char *dirname, char *targetFileName);
+char *getFileName(char *filePath);
 bool isRegistered(FILE *fp, char *id);
 bool isValid(FILE *fp, char *id, char *password);
 
@@ -67,17 +71,27 @@ void *routes(void *argv)
 {
     int fd = *(int *) argv;
     char cmd[DATA_BUFFER];
+    chdir(CURR_DIR);
 
     while (recv(fd, cmd, DATA_BUFFER, MSG_PEEK | MSG_DONTWAIT) != 0) {
-        send(fd, "\nSelect command:\n1. Login\n2. Register\n", DATA_BUFFER, 0);
-        if (getInput(cmd, fd) == 0) break;
+        if (fd != curr_fd) {
+            if (getInput(fd, "\nSelect command:\n1. Login\n2. Register\n", cmd) == 0) break;
 
-        if (strcmp(cmd, "login") == 0 || strcmp(cmd, "1") == 0) {
-            login(cmd, fd);
-        } else if (strcmp(cmd, "register") == 0 || strcmp(cmd, "2") == 0) {
-            regist(cmd, fd);
+            if (strcmp(cmd, "login") == 0 || strcmp(cmd, "1") == 0) {
+                login(cmd, fd);
+            } else if (strcmp(cmd, "register") == 0 || strcmp(cmd, "2") == 0) {
+                regist(cmd, fd);
+            } else {
+                send(fd, "Invalid command\n", sizeof(char) * 20, 0);
+            }
         } else {
-            send(fd, "Invalid command\n", sizeof(char) * 20, 0);
+            if (getInput(fd, "\nSelect command:\n1. Add\n", cmd) == 0) break;
+
+            if (strcmp(cmd, "add") == 0 || strcmp(cmd, "1") == 0) {
+                add(cmd, fd);
+            } else {
+                send(fd, "Invalid command\n", sizeof(char) * 20, 0);
+            }
         }
         sleep(0.001);
     }
@@ -87,6 +101,27 @@ void *routes(void *argv)
     close(fd);
 }
 
+void add(char *buf, int fd)
+{
+    char *dirName = "FILES";
+    char publisher[DATA_BUFFER], year[DATA_BUFFER], client_path[DATA_BUFFER];
+    if (getInput(fd, "Publisher: ", publisher) == 0) return;
+    if (getInput(fd, "Tahun Publikasi: ", year) == 0) return;
+    if (getInput(fd, "Filepath: ", client_path) == 0) return;
+
+    mkdir(dirName, 0777); // make sure that directory exist
+    FILE *fp = fopen("files.tsv", "a+");
+
+    // make client send the file
+    strcpy(client_path, getFileName(client_path));
+
+    if (writeFile(fd, dirName, client_path) == 0) {
+        fprintf(fp, "%s|%s|%s\n", client_path, publisher, year);
+        printf("Store file finished\n");
+    }
+    fclose(fp);
+}
+
 void login(char *buf, int fd)
 {
     if (curr_fd != -1) {
@@ -94,16 +129,15 @@ void login(char *buf, int fd)
         return;
     }
     char id[DATA_BUFFER], password[DATA_BUFFER];
-    sprintf(buf, "%s/%s", CURR_DIR, "akun.txt");
+    FILE *fp = fopen("akun.txt", "a+");
 
-    FILE *fp = fopen(buf, "a+");
-    if (getCredentials(fd, id, password) == 0) return;
-
-    if (isValid(fp, id, password)) {
-        send(fd, "Login success\n", SIZE_BUFFER, 0);
-        curr_fd = fd;
-    } else {
-        send(fd, "Wrong id or password\n", SIZE_BUFFER, 0);
+    if (getCredentials(fd, id, password) != 0) {
+        if (isValid(fp, id, password)) {
+            send(fd, "Login success\n", SIZE_BUFFER, 0);
+            curr_fd = fd;
+        } else {
+            send(fd, "Wrong id or password\n", SIZE_BUFFER, 0);
+        }
     }
     fclose(fp);
 }
@@ -111,39 +145,79 @@ void login(char *buf, int fd)
 void regist(char *buf, int fd)
 {
     char id[DATA_BUFFER], password[DATA_BUFFER];
-    sprintf(buf, "%s/%s", CURR_DIR, "akun.txt");
+    FILE *fp = fopen("akun.txt", "a+");
 
-    FILE *fp = fopen(buf, "a+");
-    if (getCredentials(fd, id, password) == 0) return;
-
-    if (isRegistered(fp, id)) {
-        send(fd, "Id is already registered\n", SIZE_BUFFER, 0);
-    } else {
-        fprintf(fp, "%s:%s\n", id, password);
-        send(fd, "Register success\n", SIZE_BUFFER, 0);
+    if (getCredentials(fd, id, password) != 0) {
+        if (isRegistered(fp, id)) {
+            send(fd, "Id is already registered\n", SIZE_BUFFER, 0);
+        } else {
+            fprintf(fp, "%s:%s\n", id, password);
+            send(fd, "Register success\n", SIZE_BUFFER, 0);
+        }
     }
     fclose(fp);
 }
 
+// Helper
+char *getFileName(char *filePath)
+{
+    char *ret = strrchr(filePath, '/');
+    if (ret) {
+        return ret;
+    } else {
+        return filePath;
+    }
+}
+
+int writeFile(int fd, char *dirname, char *targetFileName)
+{
+    int ret_val;
+    char buf[DATA_BUFFER];
+
+    // Make sure that client has the file
+    ret_val = recv(fd, buf, DATA_BUFFER, 0);
+    if (ret_val == 0 || strcmp(buf, "File found") != 0) {
+        if (ret_val == 0) printf("Connection to client lost\n");
+        else puts(buf);
+        return -1;
+    }
+
+    sprintf(buf, "%s/%s", dirname,targetFileName);
+    FILE *fp = fopen(buf, "w+");
+    printf("Store %s file from client\n", buf);
+
+    while ((ret_val = recv(fd, buf, DATA_BUFFER, 0)) != 0) {
+        if (strcmp(buf, "Send file finished") == 0) {
+            printf("%s", buf);
+            ret_val = 0;
+            break;
+        }
+        fprintf(fp, "%s", buf);
+        memset(buf, 0, SIZE_BUFFER);
+    }
+    fclose(fp);
+    return ret_val;
+}
+
 int getCredentials(int fd, char *id, char *password)
 {
-    send(fd, "Insert id: ", SIZE_BUFFER, 0);
-    if (getInput(id, fd) == 0) return 0;
-    send(fd, "Insert password: ", SIZE_BUFFER, 0);
-    if (getInput(password, fd) == 0) return 0;
+    if (getInput(fd, "Insert id: ", id) == 0) return 0;
+    if (getInput(fd, "Insert password: ", password) == 0) return 0;
     return 1;
 }
 
-int getInput(char *buf, int fd)
+int getInput(int fd, char *prompt, char *storage)
 {
+    send(fd, prompt, SIZE_BUFFER, 0);
+
     int count, ret_val;
     ioctl(fd, FIONREAD, &count);
     count /= DATA_BUFFER;
     for (int i = 0; i <= count; i++) {
-        ret_val = recv(fd, buf, DATA_BUFFER, 0);
-        if (ret_val == 0)
-            break;
+        ret_val = recv(fd, storage, DATA_BUFFER, 0);
+        if (ret_val == 0) break;
     }
+    printf("Input: [%s]\n", storage);
     return ret_val;
 }
 
@@ -167,6 +241,7 @@ bool isRegistered(FILE *fp, char *id)
     return false;
 }
 
+// Socket Setup
 int create_tcp_server_socket()
 {
     struct sockaddr_in saddr;
