@@ -26,11 +26,13 @@ void *routes(void *argv);
 void login(char *buf, int fd);
 void regist(char *buf, int fd);
 void add(char *buf, int fd);
+void download(char *buf, int fd);
 
 // Helper
 int getInput(int fd, char *prompt, char *storage);
 int getCredentials(int fd, char *id, char *password);
 int writeFile(int fd, char *dirname, char *targetFileName);
+int sendFile(int fd, char *filename);
 char *getFileName(char *filePath);
 bool validLogin(FILE *fp, char *id, char *password);
 bool isRegistered(FILE *fp, char *id);
@@ -75,25 +77,33 @@ void *routes(void *argv)
     chdir(CURR_DIR);
 
     while (recv(fd, cmd, DATA_BUFFER, MSG_PEEK | MSG_DONTWAIT) != 0) {
-        if (fd != curr_fd) {
-            if (getInput(fd, "\nSelect command:\n1. Login\n2. Register\n", cmd) == 0) break;
+        // public route
+        // if (fd != curr_fd) {
+        //     if (getInput(fd, "\nSelect command:\n1. Login\n2. Register\n", cmd) == 0) break;
 
-            if (strcmp(cmd, "login") == 0 || strcmp(cmd, "1") == 0) {
-                login(cmd, fd);
-            } else if (strcmp(cmd, "register") == 0 || strcmp(cmd, "2") == 0) {
-                regist(cmd, fd);
-            } else {
-                send(fd, "Invalid command\n", sizeof(char) * 20, 0);
-            }
-        } else {
-            if (getInput(fd, "\nSelect command:\n1. Add\n", cmd) == 0) break;
+        //     if (strcmp(cmd, "login") == 0 || strcmp(cmd, "1") == 0) {
+        //         login(cmd, fd);
+        //     } else if (strcmp(cmd, "register") == 0 || strcmp(cmd, "2") == 0) {
+        //         regist(cmd, fd);
+        //     } else {
+        //         send(fd, "Invalid command\n", sizeof(char) * 20, 0);
+        //     }
+        // } else { // protected route
+            if (getInput(fd, "\nSelect command:\n1. Add\n2. Download <filename with extension>\n", cmd) == 0) break;
 
             if (strcmp(cmd, "add") == 0 || strcmp(cmd, "1") == 0) {
                 add(cmd, fd);
             } else {
-                send(fd, "Invalid command\n", sizeof(char) * 20, 0);
+                char *tmp = strtok(cmd, " ");
+                char *tmp2 = strtok(NULL, " ");
+                if (strcasecmp(tmp, "download") == 0 && tmp2) {
+                    strcpy(cmd, tmp2);
+                    download(cmd, fd);
+                } else {
+                    send(fd, "Invalid command\n", sizeof(char) * 20, 0);
+                }
             }
-        }
+        // }
         sleep(0.001);
     }
     if (fd == curr_fd) {
@@ -104,6 +114,17 @@ void *routes(void *argv)
 }
 
 /****   Controllers   *****/
+void download(char *buf, int fd)
+{
+    FILE *fp = fopen("files.tsv", "a+");
+    if (alreadyDownloaded(fp, buf)) {
+        sendFile(fd, buf);
+    } else {
+        send(fd, "Error, file hasn't been downloaded\n", SIZE_BUFFER, 0);
+    }
+    fclose(fp);
+}
+
 void add(char *buf, int fd)
 {
     char *dirName = "FILES";
@@ -123,9 +144,10 @@ void add(char *buf, int fd)
         if (writeFile(fd, dirName, fileName) == 0) {
             fprintf(fp, "%s|%s|%s\n", fileName, publisher, year);
             printf("Store file finished\n");
+        } else {
+            printf("Error occured when receiving file\n");
         }
     }
-    
     fclose(fp);
 }
 
@@ -166,6 +188,37 @@ void regist(char *buf, int fd)
 }
 
 /*****  HELPER  *****/
+int sendFile(int fd, char *filename)
+{
+    char buf[DATA_BUFFER] = {0};
+    printf("Sending [%s] file to client!\n", filename);
+    strcpy(buf, filename);
+    sprintf(filename, "FILES/%s", buf);
+    FILE *fp = fopen(filename, "r");
+
+    if (!fp) {
+        printf("File not found\n");
+        send(fd, "File not found\n", SIZE_BUFFER, 0);
+        return -1;
+    }
+    send(fd, "\nStart receiving file\n", SIZE_BUFFER, 0);
+    send(fd, buf, SIZE_BUFFER, 0);
+    memset(buf, 0, SIZE_BUFFER);
+
+    while (fgets(buf, DATA_BUFFER, fp)) {
+        if (send(fd, buf, sizeof(buf), 0) == -1) {
+            printf("Error in sending file\n");
+            send(fd, "Error in sending file", SIZE_BUFFER, 0);
+            return -1;
+        }
+        memset(buf, 0, SIZE_BUFFER);
+    }
+    printf("Send file finished\n");
+    send(fd, "Send file finished", SIZE_BUFFER, 0); 
+    fclose(fp);
+    return 0;
+}
+
 char *getFileName(char *filePath)
 {
     char *ret = strrchr(filePath, '/');

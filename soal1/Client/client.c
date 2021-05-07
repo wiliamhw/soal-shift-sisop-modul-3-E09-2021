@@ -12,24 +12,24 @@
 #define DATA_BUFFER 500
 #define CURR_DIR "/home/frain8/Documents/Sisop/Modul_3/soal_shift_3/soal1/Client"
 
-int client_fd;
 const int SIZE_BUFFER = sizeof(char) * DATA_BUFFER;
 char inputPath[DATA_BUFFER];
 bool _inputPath = false;
 
 int create_tcp_client_socket();
-void *handleInput();
-void *handleOutput();
-void getInput(int fd, char *input);
+void *handleInput(void *client_fd);
+void *handleOutput(void *client_fd);
+void getServerInput(int fd, char *input);
 void sendFile(int fd);
+void writeFile(int fd);
 
 int main()
 {
     pthread_t tid[2];
-    client_fd = create_tcp_client_socket();
+    int client_fd = create_tcp_client_socket();
 
-    pthread_create(&(tid[0]), NULL, &handleOutput, NULL);
-    pthread_create(&(tid[1]), NULL, &handleInput, NULL);
+    pthread_create(&(tid[0]), NULL, &handleOutput, (void *) &client_fd);
+    pthread_create(&(tid[1]), NULL, &handleInput, (void *) &client_fd);
 
     pthread_join(tid[0], NULL);
     pthread_join(tid[1], NULL);
@@ -38,15 +38,16 @@ int main()
     return 0;
 }
 
-void *handleInput()
+void *handleInput(void *client_fd)
 {
     chdir(CURR_DIR);
+    int fd = *(int *) client_fd;
     char message[DATA_BUFFER];
-    send(client_fd, message, sizeof(message), 0);
+    send(fd, message, sizeof(message), 0);
 
     while (1) {
-        scanf("%s", message);
-        send(client_fd, message, sizeof(message), 0);
+        gets(message);
+        send(fd, message, sizeof(message), 0);
         if (_inputPath) {
             strcpy(inputPath, message);
         }
@@ -54,23 +55,26 @@ void *handleInput()
     }
 }
 
-void *handleOutput() 
+void *handleOutput(void *client_fd) 
 {
     chdir(CURR_DIR);
+    int fd = *(int *) client_fd;
     char message[DATA_BUFFER];
 
     while (1) {
-        getInput(client_fd, message);
+        getServerInput(fd, message);
         printf("%s", message);
         
         if (strcmp(message, "Filepath: ") == 0) {
             _inputPath = true;
         } else if (strcmp(message, "\nStart sending file\n") == 0) {
-            sendFile(client_fd);
+            sendFile(fd);
             _inputPath = false;
         } else if (strcmp(message, "Error, file is already uploaded\n") == 0) {
             _inputPath = false;
-        }
+        } else if (strcmp(message, "\nStart receiving file\n") == 0) {
+            writeFile(fd);
+        } 
         fflush(stdout);
     }
 }
@@ -100,7 +104,29 @@ void sendFile(int fd)
     }
 }
 
-void getInput(int fd, char *input)
+void writeFile(int fd)
+{
+    char buf[DATA_BUFFER] = {0};
+    int ret_val = recv(fd, buf, DATA_BUFFER, 0);
+    FILE *fp = fopen(buf, "w+");
+    memset(buf, 0, SIZE_BUFFER);
+
+    while ((ret_val = recv(fd, buf, DATA_BUFFER, 0)) != 0) {
+        if (strcmp(buf, "Send file finished") == 0) {
+            puts(buf);
+            break;
+        } else if (ret_val <= 0) {
+            printf("Connection lost\n.");
+            break;
+        }
+        fprintf(fp, "%s", buf);
+        memset(buf, 0, SIZE_BUFFER);
+    }
+    fclose(fp);
+}
+
+
+void getServerInput(int fd, char *input)
 {
     if (recv(fd, input, DATA_BUFFER, 0) == 0) {
         printf("Server shutdown\n");
