@@ -64,7 +64,23 @@
    * Jika file tidak ada di *client's local filepath*
       1. Tampilkan pesan **Error, file not found** ke client.
       2. Kembali ke menu pemilihan perintah.
+   * Jika file sudah ada di **files.tsv**
+      1. Tampilkan pesan **Error, file is already uploaded** ke client.
+      2. Kembali ke menu pemilihan perintah.
 5. Tulis data file yang baru terinput ke file **files.tsv** sesuai format di atas.
+
+## Subsoal d
+### Penjelasan Soal
+1. Client dapat mendownload file yang ada di folder **FILES**.
+2. Perintah untuk mendownload file adalah `download <namafile>.<ekstensi>`.
+
+### Penyelesaian Soal
+1. Pastikan client sudah login ke server.
+2. Dapatkan namafile dan ekstensi dari file yang ingin didownload.
+3. Pastikan file tersebut ada di **files.tsv**.
+   1. Jika tidak ada, tampilkan pesan **Error, file hasn't been downloaded** ke client.
+   2. Kembali ke menu pemilihan perintah.
+4. Kirim file ke client.
 <br><br>
 
 # Soal 2

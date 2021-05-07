@@ -49,8 +49,6 @@ void *handleInput()
         send(client_fd, message, sizeof(message), 0);
         if (_inputPath) {
             strcpy(inputPath, message);
-            sendFile(client_fd);
-            _inputPath = false;
         }
         // printf("Successfully sent data: %s\n", message);
     }
@@ -64,8 +62,14 @@ void *handleOutput()
     while (1) {
         getInput(client_fd, message);
         printf("%s", message);
+        
         if (strcmp(message, "Filepath: ") == 0) {
             _inputPath = true;
+        } else if (strcmp(message, "\nStart sending file\n") == 0) {
+            sendFile(client_fd);
+            _inputPath = false;
+        } else if (strcmp(message, "Error, file is already uploaded\n") == 0) {
+            _inputPath = false;
         }
         fflush(stdout);
     }
@@ -73,7 +77,7 @@ void *handleOutput()
 
 void sendFile(int fd)
 {
-    // printf("\nSending %s to server!\n", inputPath);
+    printf("Sending [%s] file to server!\n", inputPath);
     FILE *fp = fopen(inputPath, "r");
     char buf[DATA_BUFFER] = {0};
 
@@ -81,17 +85,17 @@ void sendFile(int fd)
         send(fd, "File found", SIZE_BUFFER, 0);
         while (fgets(buf, DATA_BUFFER, fp)) {
             if (send(fd, buf, sizeof(buf), 0) == -1) {
-                // printf("Error in sending file\n\n");
+                printf("Error in sending file\n");
                 send(fd, "Error in sending file", SIZE_BUFFER, 0);
                 break;
             }
             memset(buf, 0, SIZE_BUFFER);
         }
-        // printf("Send file finished\n\n");
+        printf("Send file finished\n");
         send(fd, "Send file finished", SIZE_BUFFER, 0); 
         fclose(fp);
     } else {
-        // printf("File not found\n\n");
+        printf("File not found\n");
         send(fd, "File not found", SIZE_BUFFER, 0);
     }
 }

@@ -17,12 +17,12 @@
 int curr_fd = -1;
 const int SIZE_BUFFER = sizeof(char) * DATA_BUFFER;
 
-// Essential
+// Socket setup
 int create_tcp_server_socket();
 void setup_epoll_connection(int epfd, int fd, struct epoll_event *event);
-void *routes(void *argv);
 
-// Controller
+// Routes & controller
+void *routes(void *argv);
 void login(char *buf, int fd);
 void regist(char *buf, int fd);
 void add(char *buf, int fd);
@@ -32,8 +32,9 @@ int getInput(int fd, char *prompt, char *storage);
 int getCredentials(int fd, char *id, char *password);
 int writeFile(int fd, char *dirname, char *targetFileName);
 char *getFileName(char *filePath);
+bool validLogin(FILE *fp, char *id, char *password);
 bool isRegistered(FILE *fp, char *id);
-bool isValid(FILE *fp, char *id, char *password);
+bool alreadyDownloaded(FILE *fp, char *filename);
 
 int main()
 {
@@ -98,9 +99,11 @@ void *routes(void *argv)
     if (fd == curr_fd) {
         curr_fd = -1;
     }
+    printf("Close connection with fd: %d\n", fd);
     close(fd);
 }
 
+/****   Controllers   *****/
 void add(char *buf, int fd)
 {
     char *dirName = "FILES";
@@ -109,16 +112,20 @@ void add(char *buf, int fd)
     if (getInput(fd, "Tahun Publikasi: ", year) == 0) return;
     if (getInput(fd, "Filepath: ", client_path) == 0) return;
 
-    mkdir(dirName, 0777); // make sure that directory exist
     FILE *fp = fopen("files.tsv", "a+");
+    char *fileName = getFileName(client_path);
 
-    // make client send the file
-    strcpy(client_path, getFileName(client_path));
-
-    if (writeFile(fd, dirName, client_path) == 0) {
-        fprintf(fp, "%s|%s|%s\n", client_path, publisher, year);
-        printf("Store file finished\n");
+    if (alreadyDownloaded(fp, fileName)) {
+        send(fd, "Error, file is already uploaded\n", SIZE_BUFFER, 0);
+    } else {
+        send(fd, "\nStart sending file\n", SIZE_BUFFER, 0);
+        mkdir(dirName, 0777);
+        if (writeFile(fd, dirName, fileName) == 0) {
+            fprintf(fp, "%s|%s|%s\n", fileName, publisher, year);
+            printf("Store file finished\n");
+        }
     }
+    
     fclose(fp);
 }
 
@@ -132,7 +139,7 @@ void login(char *buf, int fd)
     FILE *fp = fopen("akun.txt", "a+");
 
     if (getCredentials(fd, id, password) != 0) {
-        if (isValid(fp, id, password)) {
+        if (validLogin(fp, id, password)) {
             send(fd, "Login success\n", SIZE_BUFFER, 0);
             curr_fd = fd;
         } else {
@@ -158,15 +165,12 @@ void regist(char *buf, int fd)
     fclose(fp);
 }
 
-// Helper
+/*****  HELPER  *****/
 char *getFileName(char *filePath)
 {
     char *ret = strrchr(filePath, '/');
-    if (ret) {
-        return ret;
-    } else {
-        return filePath;
-    }
+    if (ret) return ret;
+    else return filePath;
 }
 
 int writeFile(int fd, char *dirname, char *targetFileName)
@@ -182,13 +186,13 @@ int writeFile(int fd, char *dirname, char *targetFileName)
         return -1;
     }
 
+    printf("Store %s file from client\n", buf);
     sprintf(buf, "%s/%s", dirname,targetFileName);
     FILE *fp = fopen(buf, "w+");
-    printf("Store %s file from client\n", buf);
 
     while ((ret_val = recv(fd, buf, DATA_BUFFER, 0)) != 0) {
         if (strcmp(buf, "Send file finished") == 0) {
-            printf("%s", buf);
+            puts(buf);
             ret_val = 0;
             break;
         }
@@ -210,6 +214,7 @@ int getInput(int fd, char *prompt, char *storage)
 {
     send(fd, prompt, SIZE_BUFFER, 0);
 
+    // Get input
     int count, ret_val;
     ioctl(fd, FIONREAD, &count);
     count /= DATA_BUFFER;
@@ -221,7 +226,7 @@ int getInput(int fd, char *prompt, char *storage)
     return ret_val;
 }
 
-bool isValid(FILE *fp, char *id, char *password)
+bool validLogin(FILE *fp, char *id, char *password)
 {
     char db[DATA_BUFFER], input[DATA_BUFFER];
     sprintf(input, "%s:%s", id, password);
@@ -241,7 +246,17 @@ bool isRegistered(FILE *fp, char *id)
     return false;
 }
 
-// Socket Setup
+bool alreadyDownloaded(FILE *fp, char *filename)
+{
+    char db[DATA_BUFFER], *tmp;
+    while (fscanf(fp, "%s", db) != EOF) {
+        tmp = strtok(db, "|");
+        if (strcmp(tmp, filename) == 0) return true;
+    }
+    return false;
+}
+
+/****   SOCKET SETUP    *****/
 int create_tcp_server_socket()
 {
     struct sockaddr_in saddr;
