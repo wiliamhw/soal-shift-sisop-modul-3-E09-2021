@@ -38,6 +38,9 @@
       * Jika tidak ada, batalkan login
    4. Sambungkan client dengan server.
 
+### Outputt
+![Output soal 1a](https://res.cloudinary.com/dx3jourdf/image/upload/v1620456233/Output_soal_1_update_ntq180.png)
+
 ## Subsoal b & c
 ### Penjelasan Soal
 1. Sistem memiliki file bernama **files.tsv** yang dengan format:  
@@ -92,3 +95,6 @@
 <br><br>
 
 # Kendala
+* Soal 1
+  * Debug pada thread, server, dan client sulit untuk dilakukan.  
+  * Kesulitan untuk mentransfer file gambar dan `.pdf`.  
