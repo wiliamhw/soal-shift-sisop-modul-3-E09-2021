@@ -19,7 +19,7 @@ void *factorial(void* arg)
     }
     if (data[1] > data[0]) {
         for (int a=data[0]; a>=1; a--) {
-            k += a;
+            k *= a;
         }
     }
     if (data[0] == 0 || data[1] == 0) {
