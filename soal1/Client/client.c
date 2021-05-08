@@ -83,21 +83,22 @@ void *handleOutput(void *client_fd)
 void sendFile(int fd)
 {
     printf("Sending [%s] file to server!\n", inputPath);
+    int ret_val;
     FILE *fp = fopen(inputPath, "r");
     char buf[DATA_BUFFER] = {0};
 
     if (fp) {
+        fseek(fp, 0L, SEEK_END);
+        int size = ftell(fp);
+        rewind(fp);
+        sprintf(buf, "%d", size);
+
         send(fd, "File found", SIZE_BUFFER, 0);
-        while (fgets(buf, DATA_BUFFER, fp)) {
-            if (send(fd, buf, sizeof(buf), 0) == -1) {
-                printf("Error in sending file\n");
-                send(fd, "Error in sending file", SIZE_BUFFER, 0);
-                break;
-            }
-            memset(buf, 0, SIZE_BUFFER);
-        }
-        printf("Send file finished\n");
-        send(fd, "Send file finished", SIZE_BUFFER, 0); 
+        send(fd, buf, SIZE_BUFFER, 0);
+        while ((ret_val = fread(buf, 1, 1, fp)) > 0) {
+            send(fd, buf, 1, 0);
+        } 
+        printf("Sending file finished!\n");
         fclose(fp);
     } else {
         printf("File not found\n");
@@ -110,11 +111,15 @@ void writeFile(int fd)
     char buf[DATA_BUFFER] = {0};
     int ret_val = recv(fd, buf, DATA_BUFFER, 0);
     FILE *fp = fopen(buf, "w+");
+
+    recv(fd, buf, DATA_BUFFER, 0);
+    int size = atoi(buf);
     
-    while ((ret_val = recv(fd, buf, DATA_BUFFER, 0)) > 0) {
-        if (strcmp(buf, "STOP") == 0) break;
+    while (size > 0) {
+        ret_val = recv(fd, buf, DATA_BUFFER, 0);
         fwrite(buf, 1, ret_val, fp);
         memset(buf, 0, SIZE_BUFFER);
+        size -= ret_val;
     }
     puts("Send file finished");
     send(fd, "Send file finished", SIZE_BUFFER, 0);

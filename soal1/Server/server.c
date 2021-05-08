@@ -77,18 +77,18 @@ void *routes(void *argv)
     chdir(CURR_DIR);
 
     while (recv(fd, cmd, DATA_BUFFER, MSG_PEEK | MSG_DONTWAIT) != 0) {
-        // public route
-        // if (fd != curr_fd) {
-        //     if (getInput(fd, "\nSelect command:\n1. Login\n2. Register\n", cmd) == 0) break;
+        public route
+        if (fd != curr_fd) {
+            if (getInput(fd, "\nSelect command:\n1. Login\n2. Register\n", cmd) == 0) break;
 
-        //     if (strcmp(cmd, "login") == 0 || strcmp(cmd, "1") == 0) {
-        //         login(cmd, fd);
-        //     } else if (strcmp(cmd, "register") == 0 || strcmp(cmd, "2") == 0) {
-        //         regist(cmd, fd);
-        //     } else {
-        //         send(fd, "Invalid command\n", sizeof(char) * 20, 0);
-        //     }
-        // } else { // protected route
+            if (strcmp(cmd, "login") == 0 || strcmp(cmd, "1") == 0) {
+                login(cmd, fd);
+            } else if (strcmp(cmd, "register") == 0 || strcmp(cmd, "2") == 0) {
+                regist(cmd, fd);
+            } else {
+                send(fd, "Invalid command\n", sizeof(char) * 20, 0);
+            }
+        } else { // protected route
             if (getInput(fd, "\nSelect command:\n1. Add\n2. Download <filename with extension>\n", cmd) == 0) break;
 
             if (strcmp(cmd, "add") == 0 || strcmp(cmd, "1") == 0) {
@@ -205,11 +205,16 @@ int sendFile(int fd, char *filename)
     send(fd, "\nStart receiving file\n", SIZE_BUFFER, 0);
     send(fd, buf, SIZE_BUFFER, 0);
 
+    // Transfer size
+    fseek(fp, 0L, SEEK_END);
+    int size = ftell(fp);
+    rewind(fp);
+    sprintf(buf, "%d", size);
+    send(fd, buf, SIZE_BUFFER, 0);
+
     while ((ret_val = fread(buf, 1, DATA_BUFFER, fp)) > 0) {
         send(fd, buf, ret_val, 0);
     }
-    sleep(1);
-    send(fd, "STOP", DATA_BUFFER, 0);
     recv(fd, buf, DATA_BUFFER, 0);
     printf("Send file finished\n");
     fclose(fp);
@@ -225,8 +230,8 @@ char *getFileName(char *filePath)
 
 int writeFile(int fd, char *dirname, char *targetFileName)
 {
-    int ret_val;
-    char buf[DATA_BUFFER];
+    int ret_val, size;
+    char buf[DATA_BUFFER], in[1];
 
     // Make sure that client has the file
     ret_val = recv(fd, buf, DATA_BUFFER, 0);
@@ -235,20 +240,20 @@ int writeFile(int fd, char *dirname, char *targetFileName)
         else puts(buf);
         return -1;
     }
+    recv(fd, buf, SIZE_BUFFER, 0);
+    size = atoi(buf);
 
-    printf("Store %s file from client\n", buf);
+    printf("Store [%s] file from client\n", targetFileName);
     sprintf(buf, "%s/%s", dirname,targetFileName);
     FILE *fp = fopen(buf, "w+");
 
-    while ((ret_val = recv(fd, buf, DATA_BUFFER, 0)) != 0) {
-        if (strcmp(buf, "Send file finished") == 0) {
-            puts(buf);
-            ret_val = 0;
-            break;
-        }
-        fprintf(fp, "%s", buf);
-        memset(buf, 0, SIZE_BUFFER);
+    while (size-- > 0) {
+        if ((ret_val = recv(fd, in, 1, 0)) < 0)
+            return ret_val;
+        fwrite(in, 1, 1, fp);
     }
+    ret_val = 0;
+    printf("Storing file finished\n");
     fclose(fp);
     return ret_val;
 }
