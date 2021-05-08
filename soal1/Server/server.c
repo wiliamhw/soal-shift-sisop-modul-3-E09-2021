@@ -10,7 +10,7 @@
 #include <sys/ioctl.h>
 #include <netinet/in.h>
 
-#define DATA_BUFFER 500
+#define DATA_BUFFER 300
 #define MAX_CONNECTIONS 10
 #define CURR_DIR "/home/frain8/Documents/Sisop/Modul_3/soal_shift_3/soal1/Server"
 
@@ -26,7 +26,8 @@ void *routes(void *argv);
 void login(char *buf, int fd);
 void regist(char *buf, int fd);
 void add(char *buf, int fd);
-void download(char *buf, int fd);
+void download(char *filename, int fd);
+void delete(char *filename, int fd);
 
 // Helper
 int getInput(int fd, char *prompt, char *storage);
@@ -77,33 +78,48 @@ void *routes(void *argv)
     chdir(CURR_DIR);
 
     while (recv(fd, cmd, DATA_BUFFER, MSG_PEEK | MSG_DONTWAIT) != 0) {
-        public route
+        // public route
         if (fd != curr_fd) {
             if (getInput(fd, "\nSelect command:\n1. Login\n2. Register\n", cmd) == 0) break;
 
             if (strcmp(cmd, "login") == 0 || strcmp(cmd, "1") == 0) {
                 login(cmd, fd);
-            } else if (strcmp(cmd, "register") == 0 || strcmp(cmd, "2") == 0) {
+            } 
+            else if (strcmp(cmd, "register") == 0 || strcmp(cmd, "2") == 0) {
                 regist(cmd, fd);
-            } else {
+            } 
+            else {
                 send(fd, "Invalid command\n", sizeof(char) * 20, 0);
             }
         } else { // protected route
-            if (getInput(fd, "\nSelect command:\n1. Add\n2. Download <filename with extension>\n", cmd) == 0) break;
+            char prompt[DATA_BUFFER];
+            strcpy(prompt, "\nSelect command:\n");
+            strcat(prompt, "1. Add\n");
+            strcat(prompt, "2. Download <filename with extension>\n");
+            strcat(prompt, "3. Delete <filename with extension>\n");
+            if (getInput(fd, prompt, cmd) == 0) break;
 
             if (strcmp(cmd, "add") == 0 || strcmp(cmd, "1") == 0) {
                 add(cmd, fd);
             } else {
                 char *tmp = strtok(cmd, " ");
                 char *tmp2 = strtok(NULL, " ");
-                if (strcasecmp(tmp, "download") == 0 && tmp2) {
+                if (!tmp2) {
+                    send(fd, "Second argument not specified\n", SIZE_BUFFER, 0);
+                } 
+                else if (strcasecmp(tmp, "download") == 0) {
                     strcpy(cmd, tmp2);
                     download(cmd, fd);
-                } else {
-                    send(fd, "Invalid command\n", sizeof(char) * 20, 0);
+                } 
+                else if (strcasecmp(tmp, "delete") == 0) {
+                    strcpy(cmd, tmp2);
+                    delete(cmd, fd);
+                } 
+                else {
+                    send(fd, "Invalid command\n", SIZE_BUFFER, 0);
                 }
             }
-        // }
+        }
         sleep(0.001);
     }
     if (fd == curr_fd) {
@@ -114,11 +130,49 @@ void *routes(void *argv)
 }
 
 /****   Controllers   *****/
-void download(char *buf, int fd)
+void delete(char *filename, int fd)
+{
+    // buf is the deleted filename
+    FILE *fp = fopen("files.tsv", "a+");
+    char db[DATA_BUFFER], currFileName[DATA_BUFFER], publisher[DATA_BUFFER], year[DATA_BUFFER];
+
+    if (alreadyDownloaded(fp, filename)) {
+        rewind(fp);
+        FILE *tmp_fp = fopen("temp.tsv", "a+");
+
+        // Copy files.tsv to temp
+        while (fgets(db, SIZE_BUFFER, fp)) {
+            sscanf(db, "%s\t%s\t%s", currFileName, publisher, year);
+            if (strcmp(currFileName, filename) != 0) { // Skip file with name equal to buf variable
+                fprintf(tmp_fp, "%s", db);
+            }
+            memset(db, 0, SIZE_BUFFER);
+        }
+        fclose(tmp_fp);
+        fclose(fp);
+        remove("files.tsv");
+        rename("temp.tsv", "files.tsv");
+
+        char deletedFileName[DATA_BUFFER];
+        sprintf(deletedFileName, "FILES/%s", filename);
+
+        char newFileName[DATA_BUFFER];
+        sprintf(newFileName, "FILES/old-%s", filename);
+
+        rename(deletedFileName, newFileName);
+        send(fd, "Delete file success\n", SIZE_BUFFER, 0);
+    } 
+    else {
+        send(fd, "Error, file hasn't been downloaded\n", SIZE_BUFFER, 0);
+        fclose(fp);
+    }
+}
+
+void download(char *filename, int fd)
 {
     FILE *fp = fopen("files.tsv", "a+");
-    if (alreadyDownloaded(fp, buf)) {
-        sendFile(fd, buf);
+    if (alreadyDownloaded(fp, filename)) {
+        sendFile(fd, filename);
     } else {
         send(fd, "Error, file hasn't been downloaded\n", SIZE_BUFFER, 0);
     }
@@ -142,7 +196,7 @@ void add(char *buf, int fd)
         send(fd, "\nStart sending file\n", SIZE_BUFFER, 0);
         mkdir(dirName, 0777);
         if (writeFile(fd, dirName, fileName) == 0) {
-            fprintf(fp, "%s|%s|%s\n", fileName, publisher, year);
+            fprintf(fp, "%s\t%s\t%s\n", fileName, publisher, year);
             printf("Store file finished\n");
         } else {
             printf("Error occured when receiving file\n");
@@ -277,6 +331,9 @@ int getInput(int fd, char *prompt, char *storage)
         ret_val = recv(fd, storage, DATA_BUFFER, 0);
         if (ret_val == 0) break;
     }
+    while (strcmp(storage, "") == 0) {
+        recv(fd, storage, DATA_BUFFER, 0);
+    }
     printf("Input: [%s]\n", storage);
     return ret_val;
 }
@@ -305,7 +362,7 @@ bool alreadyDownloaded(FILE *fp, char *filename)
 {
     char db[DATA_BUFFER], *tmp;
     while (fscanf(fp, "%s", db) != EOF) {
-        tmp = strtok(db, "|");
+        tmp = strtok(db, "\t");
         if (strcmp(tmp, filename) == 0) return true;
     }
     return false;

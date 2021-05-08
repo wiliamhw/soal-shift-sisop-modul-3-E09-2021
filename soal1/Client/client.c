@@ -126,7 +126,6 @@ void writeFile(int fd)
     fclose(fp);
 }
 
-
 void getServerInput(int fd, char *input)
 {
     if (recv(fd, input, DATA_BUFFER, 0) == 0) {

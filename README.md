@@ -84,6 +84,26 @@
    1. Jika tidak ada, tampilkan pesan **Error, file hasn't been downloaded** ke client.
    2. Kembali ke menu pemilihan perintah.
 4. Kirim file ke client.
+
+## Subsoal e
+### Penjelasan Soal
+1. Perintah pada subsoal ini adalah `delete <nama file>.<ekstensi>`.
+2. Saat perintah ini dijalankan:
+   1. Nama file pada server akan berubah menjadi `old-<nama file>.<ekstensi>`.
+   2. Hapus row dari file tersebut di **file.tsv**.
+
+### Pennyelesaian Soal
+1. Pastikan client sudah login ke server.
+2. Dapatkan nama file dan ekstensi dari file yang ingin dihapus.
+3. Pastikan file tersebut ada di **files.tsv**.
+   2. Jika tidak ada, tampilkan pesan **Error, file hasn't been downloaded** ke client.
+   3. Kembali ke menu pemilihan perintah.
+4. Hapus kolom dari file tersebut di **file.tsv**.
+   1. Copy setiap baris dari **file.tsv** ke file baru bernama **temp**.
+      * Nama file yang ingin dihapus tidak ikut dicopy.
+   2. Hapus **file.tsv** .
+   3. Ganti nama **temp** menjadi **file.tsv**.
+5. Ganti nama file.
 <br><br>
 
 # Soal 2
