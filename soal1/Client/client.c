@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <sys/ioctl.h>
 
 #define DATA_BUFFER 500
 #define CURR_DIR "/home/frain8/Documents/Sisop/Modul_3/soal_shift_3/soal1/Client"
@@ -43,11 +44,10 @@ void *handleInput(void *client_fd)
     chdir(CURR_DIR);
     int fd = *(int *) client_fd;
     char message[DATA_BUFFER];
-    send(fd, message, sizeof(message), 0);
 
     while (1) {
         gets(message);
-        send(fd, message, sizeof(message), 0);
+        send(fd, message, SIZE_BUFFER, 0);
         if (_inputPath) {
             strcpy(inputPath, message);
         }
@@ -62,6 +62,7 @@ void *handleOutput(void *client_fd)
     char message[DATA_BUFFER];
 
     while (1) {
+        memset(message, 0, SIZE_BUFFER);
         getServerInput(fd, message);
         printf("%s", message);
         
@@ -109,19 +110,14 @@ void writeFile(int fd)
     char buf[DATA_BUFFER] = {0};
     int ret_val = recv(fd, buf, DATA_BUFFER, 0);
     FILE *fp = fopen(buf, "w+");
-    memset(buf, 0, SIZE_BUFFER);
-
-    while ((ret_val = recv(fd, buf, DATA_BUFFER, 0)) != 0) {
-        if (strcmp(buf, "Send file finished") == 0) {
-            puts(buf);
-            break;
-        } else if (ret_val <= 0) {
-            printf("Connection lost\n.");
-            break;
-        }
-        fprintf(fp, "%s", buf);
+    
+    while ((ret_val = recv(fd, buf, DATA_BUFFER, 0)) > 0) {
+        if (strcmp(buf, "STOP") == 0) break;
+        fwrite(buf, 1, ret_val, fp);
         memset(buf, 0, SIZE_BUFFER);
     }
+    puts("Send file finished");
+    send(fd, "Send file finished", SIZE_BUFFER, 0);
     fclose(fp);
 }
 

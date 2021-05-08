@@ -96,5 +96,5 @@
 
 # Kendala
 * Soal 1
-  * Debug pada thread, server, dan client sulit untuk dilakukan.  
-  * Kesulitan untuk mentransfer file gambar dan `.pdf`.  
+  * Debug pada thread, server, dan client sulit untuk dilakukan.
+  * Kesulitan untuk mentransfer file gambar dan `.pdf`.

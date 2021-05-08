@@ -191,6 +191,7 @@ void regist(char *buf, int fd)
 int sendFile(int fd, char *filename)
 {
     char buf[DATA_BUFFER] = {0};
+    int ret_val;
     printf("Sending [%s] file to client!\n", filename);
     strcpy(buf, filename);
     sprintf(filename, "FILES/%s", buf);
@@ -203,18 +204,14 @@ int sendFile(int fd, char *filename)
     }
     send(fd, "\nStart receiving file\n", SIZE_BUFFER, 0);
     send(fd, buf, SIZE_BUFFER, 0);
-    memset(buf, 0, SIZE_BUFFER);
 
-    while (fgets(buf, DATA_BUFFER, fp)) {
-        if (send(fd, buf, sizeof(buf), 0) == -1) {
-            printf("Error in sending file\n");
-            send(fd, "Error in sending file", SIZE_BUFFER, 0);
-            return -1;
-        }
-        memset(buf, 0, SIZE_BUFFER);
+    while ((ret_val = fread(buf, 1, DATA_BUFFER, fp)) > 0) {
+        send(fd, buf, ret_val, 0);
     }
+    sleep(1);
+    send(fd, "STOP", DATA_BUFFER, 0);
+    recv(fd, buf, DATA_BUFFER, 0);
     printf("Send file finished\n");
-    send(fd, "Send file finished", SIZE_BUFFER, 0); 
     fclose(fp);
     return 0;
 }
