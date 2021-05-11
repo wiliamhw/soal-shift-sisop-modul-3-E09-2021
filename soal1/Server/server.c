@@ -28,6 +28,7 @@ void regist(char *buf, int fd);
 void add(char *buf, int fd);
 void download(char *filename, int fd);
 void delete(char *filename, int fd);
+void see(char *buf, int fd);
 
 // Helper
 int getInput(int fd, char *prompt, char *storage);
@@ -38,6 +39,7 @@ char *getFileName(char *filePath);
 bool validLogin(FILE *fp, char *id, char *password);
 bool isRegistered(FILE *fp, char *id);
 bool alreadyDownloaded(FILE *fp, char *filename);
+void parseFilePath(char *filepath, char *filename, char *ext);
 
 int main()
 {
@@ -46,7 +48,7 @@ int main()
     struct epoll_event connections[MAX_CONNECTIONS], epoll_temp;
     pthread_t tid;
     char buf[DATA_BUFFER], argv[DATA_BUFFER + 2];
-    int new_fd, ret_val, temp_fd, temp_ret_val;
+    int new_fd, ret_val;
 
     int timeout_msecs = 1500;
     int epfd = epoll_create(1);
@@ -68,6 +70,13 @@ int main()
             }
         }
     } /* while(1) */
+
+    /* Last step: Close all the sockets */
+    for (int i = 0; i < MAX_CONNECTIONS; i++) {
+        if (connections[i].data.fd > 0) {
+            close(connections[i].data.fd);
+        }
+    }
     return 0;
 }
 
@@ -91,17 +100,23 @@ void *routes(void *argv)
             else {
                 send(fd, "Invalid command\n", sizeof(char) * 20, 0);
             }
-        } else { // protected route
+        } else { 
+            // protected route
             char prompt[DATA_BUFFER];
             strcpy(prompt, "\nSelect command:\n");
             strcat(prompt, "1. Add\n");
             strcat(prompt, "2. Download <filename with extension>\n");
             strcat(prompt, "3. Delete <filename with extension>\n");
+            strcat(prompt, "4. See\n");
             if (getInput(fd, prompt, cmd) == 0) break;
 
             if (strcmp(cmd, "add") == 0 || strcmp(cmd, "1") == 0) {
                 add(cmd, fd);
-            } else {
+            } 
+            else if (strcmp(cmd, "see") == 0 || strcmp(cmd, "4") == 0) {
+                see(cmd, fd);
+            }
+            else {
                 char *tmp = strtok(cmd, " ");
                 char *tmp2 = strtok(NULL, " ");
                 if (!tmp2) {
@@ -130,6 +145,29 @@ void *routes(void *argv)
 }
 
 /****   Controllers   *****/
+void see(char *buf, int fd)
+{
+    FILE *src = fopen("files.tsv", "r");
+    if (!src) {
+        write(fd, "Files.tsv not found\n", SIZE_BUFFER);
+        return;
+    }
+
+    char temp[DATA_BUFFER + 85], filename[DATA_BUFFER/3], ext[5],
+        filepath[DATA_BUFFER/3], publisher[DATA_BUFFER/3], year[5];
+        
+    while (fscanf(src, "%s\t%s\t%s", filepath, publisher, year) != EOF) {
+        parseFilePath(filepath, filename, ext);
+        sprintf(temp, 
+            "Nama: %s\nPublisher: %s\nTahun publishing: %s\nEkstensi File: %s\nFilepath: %s\n\n",
+            filename, publisher, year, ext, filepath
+        );
+        write(fd, temp, SIZE_BUFFER);
+        sleep(0.001);
+    }
+    fclose(src);
+}
+
 void delete(char *filename, int fd)
 {
     // buf is the deleted filename
@@ -242,6 +280,23 @@ void regist(char *buf, int fd)
 }
 
 /*****  HELPER  *****/
+void parseFilePath(char *filepath, char *filename, char *ext)
+{
+    char *temp;
+    if (temp = strrchr(filepath, '.')) {
+        strcpy(ext, temp + 1);
+    } else {
+        ext = "";
+    }
+    if (temp = strrchr(filepath, '/')) {
+        strcpy(filename, temp + 1);
+    } else {
+        strcpy(filename, filepath);
+    }
+    char buf[DATA_BUFFER];
+    strtok(filename, ".");
+}
+
 int sendFile(int fd, char *filename)
 {
     char buf[DATA_BUFFER] = {0};
@@ -329,10 +384,11 @@ int getInput(int fd, char *prompt, char *storage)
     count /= DATA_BUFFER;
     for (int i = 0; i <= count; i++) {
         ret_val = recv(fd, storage, DATA_BUFFER, 0);
-        if (ret_val == 0) break;
+        if (ret_val == 0) return ret_val;
     }
     while (strcmp(storage, "") == 0) {
-        recv(fd, storage, DATA_BUFFER, 0);
+        ret_val = recv(fd, storage, DATA_BUFFER, 0);
+        if (ret_val == 0) return ret_val;
     }
     printf("Input: [%s]\n", storage);
     return ret_val;

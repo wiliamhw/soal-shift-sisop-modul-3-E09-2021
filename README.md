@@ -104,6 +104,34 @@
    2. Hapus **file.tsv** .
    3. Ganti nama **temp** menjadi **file.tsv**.
 5. Ganti nama file.
+
+## Subsoal f
+### Penjelasan Soal
+1. Perintah pada subsoal ini adalah `see`.
+2. Saat perintah ini dijalankan, akan tampil isi **files.tsv** di terminal client dengan format berikut:
+   ```
+   Nama:
+   Publisher:
+   Tahun publishing:
+   Ekstensi File : 
+   Filepath : 
+
+   Nama:
+   Publisher:
+   Tahun publishing:
+   Ekstensi File : 
+   Filepath : 
+
+   ```
+
+### Penyelesaian Soal
+1. Pastikan client sudah login ke server.
+2. Scan isi **files.tsv** dengan perintah `fscanf`.
+3. Parse setiap baris dari **files.tsv** untuk mendapatkan lima data yang akan diprint.
+4. Print kelima data tersebut ke terminal client dengan perintah `send` atau `write`.
+
+### Outputt
+![Output soal 1f](https://res.cloudinary.com/dx3jourdf/image/upload/v1620745746/Output_soal1f_prufvj.png)
 <br><br>
 
 # Soal 2
