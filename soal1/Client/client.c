@@ -8,7 +8,6 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <sys/ioctl.h>
 
 #define DATA_BUFFER 300
 #define CURR_DIR "/mnt/c/Users/wilia/Documents/soal-shift-3/soal1/Client"

@@ -168,6 +168,9 @@
 ### Penyelesaian Soal
 1. Simpan id dan pass user yang ter-login ke dalam array `auth_user`.
 2. Catat log setelah perintah berhasil dijalankan.
+
+### Output
+![Output soal 1h](https://res.cloudinary.com/dx3jourdf/image/upload/v1620788360/Output_soal1h_rld5bl.jpg)
 <br><br>
 
 
