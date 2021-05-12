@@ -9,14 +9,15 @@
 * Dilarang menggunakan `system()` dan `execv()`. Silahkan dikerjakan sepenuhnya dengan thread dan socket programming. 
 * Untuk download dan upload silahkan menggunakan file teks dengan ekstensi dan isi bebas (yang ada isinya bukan touch saja dan tidak kosong) dan requirement untuk benar adalah percobaan dengan minimum 5 data.
 
+
 ## Subsoal a
 ### Penjelasan Soal
-1. Client bisa register dan login pada server.
+* Client bisa register dan login pada server.
    * Saat register, client akan diminta input id dan passwordnya.
    * Login dinyatakan berhasil jika id dan password yang dikirim client sesuai dengan list akun pada server.
-2. Sistem dapat menerima multi-connections.
-3. Jika ada satu client yang sudah login, maka client yang ingin login berikutnya harus menunggu hingga client yang sudah login tersebut logout.
-4. Data id dan password akun disimpan di file bernama **akun.txt** dengan format:
+* Sistem dapat menerima multi-connections.
+* Jika ada satu client yang sudah login, maka client yang ingin login berikutnya harus menunggu hingga client yang sudah login tersebut logout.
+* Data id dan password akun disimpan di file bernama **akun.txt** dengan format:
    ```
    id:password
    id2:password2
@@ -38,26 +39,27 @@
       * Jika tidak ada, batalkan login
    4. Sambungkan client dengan server.
 
-### Outputt
+### Output
 ![Output soal 1a](https://res.cloudinary.com/dx3jourdf/image/upload/v1620456233/Output_soal_1_update_ntq180.png)
+
 
 ## Subsoal b & c
 ### Penjelasan Soal
-1. Sistem memiliki file bernama **files.tsv** yang dengan format:  
+* Sistem memiliki file bernama **files.tsv** yang dengan format:  
    `<path file di server>|<publisher>|<tahun publikasi>`
-2. File **files.tsv** merupakan database dari input file yang disimpan di folder **FILES**.
-3. Struktur dari direktori **FILES** adalah sebagai berikut:
+* File **files.tsv** merupakan database dari input file yang disimpan di folder **FILES**.
+* Struktur dari direktori **FILES** adalah sebagai berikut:
    ```
    File1.ekstensi
    File2.ekstensi
    ```
-4. Client dapat mengirim input file ke server dengan command `add` dengan format prompt message sebagai berikut.
+* Client dapat mengirim input file text ke server dengan command `add` dengan format prompt message sebagai berikut.
    ```
    Publisher:
    Tahun Publikasi:
    Filepath: <*client's local filepath*>
    ```
-5. Simpan file yang baru di upload ke folder **FILES** dan update **files.tsv**.
+* Simpan file yang baru di upload ke folder **FILES** dan update **files.tsv**.
    
 ### Penyelesaian Soal
 1. Pastikan client sudah login ke server.
@@ -72,10 +74,11 @@
       2. Kembali ke menu pemilihan perintah.
 5. Tulis data file yang baru terinput ke file **files.tsv** sesuai format di atas.
 
+
 ## Subsoal d
 ### Penjelasan Soal
-1. Client dapat mendownload file yang ada di folder **FILES**.
-2. Perintah untuk mendownload file adalah `download <namafile>.<ekstensi>`.
+* Client dapat mendownload file text yang ada di folder **FILES**.
+* Perintah untuk mendownload file text adalah `download <namafile>.<ekstensi>`.
 
 ### Penyelesaian Soal
 1. Pastikan client sudah login ke server.
@@ -85,12 +88,13 @@
    2. Kembali ke menu pemilihan perintah.
 4. Kirim file ke client.
 
+
 ## Subsoal e
 ### Penjelasan Soal
-1. Perintah pada subsoal ini adalah `delete <nama file>.<ekstensi>`.
-2. Saat perintah ini dijalankan:
-   1. Nama file pada server akan berubah menjadi `old-<nama file>.<ekstensi>`.
-   2. Hapus row dari file tersebut di **file.tsv**.
+* Perintah pada subsoal ini adalah `delete <nama file>.<ekstensi>`.
+* Saat perintah ini dijalankan:
+   * Nama file pada server akan berubah menjadi `old-<nama file>.<ekstensi>`.
+   * Hapus row dari file tersebut di **file.tsv**.
 
 ### Pennyelesaian Soal
 1. Pastikan client sudah login ke server.
@@ -104,7 +108,71 @@
    2. Hapus **file.tsv** .
    3. Ganti nama **temp** menjadi **file.tsv**.
 5. Ganti nama file.
+
+
+## Subsoal f
+### Penjelasan Soal
+* Perintah pada subsoal ini adalah `see`.
+* Saat perintah ini dijalankan, akan tampil isi **files.tsv** di terminal client dengan format berikut:
+   ```
+   Nama:
+   Publisher:
+   Tahun publishing:
+   Ekstensi File: 
+   Filepath: 
+
+   Nama:
+   Publisher:
+   Tahun publishing:
+   Ekstensi File: 
+   Filepath: 
+
+   ```
+
+### Penyelesaian Soal
+1. Pastikan client sudah login ke server.
+2. Scan isi **files.tsv** dengan perintah `fscanf`.
+3. Parse setiap baris dari **files.tsv** untuk mendapatkan lima data yang akan diprint.
+4. Print kelima data tersebut ke terminal client dengan perintah `send` atau `write`.
+
+### Output
+![Output soal 1f](https://res.cloudinary.com/dx3jourdf/image/upload/v1620745746/Output_soal1f_prufvj.png)
+
+
+## Subsoal g
+### Penjelasan Soal
+* Perintah pada subsoal ini adalah `find <query string>`
+* Hasilnya adalah semua nama file yang mengantung `<query string>` yand ditulis pada perintah `find`.
+* Format output sama dengan format pada subsoal f.
+
+### Penyelesaian Soal
+1. Pastikan client sudah login ke server.
+2. Dapatkan `<query string>`.
+3. Lakukan modifikasi berikut ini pada penyelesaian soal 1f.
+4. Setelah langkah 3 pada penyelesaian soal 1f, cek apakah nama file mengandung `<query string>`.
+5. Jika iya, print detail dari file tersebut ke terminal client.
+
+### Output
+![Output soal 1g](https://res.cloudinary.com/dx3jourdf/image/upload/v1620748554/Output_soal1g_nygix9.png)
+
+
+## Subsoal h
+### Penjelasan Soal
+* Buat log untuk perintah `add` dan `delete` di file `running.log`.
+* Format log:
+  ```
+   Tambah : File1.ektensi (id:pass)
+   Hapus : File2.ektensi (id:pass)
+  ```
+
+### Penyelesaian Soal
+1. Simpan id dan pass user yang ter-login ke dalam array `auth_user`.
+2. Catat log setelah perintah berhasil dijalankan.
+
+### Output
+![Output soal 1h](https://res.cloudinary.com/dx3jourdf/image/upload/v1620788360/Output_soal1h_rld5bl.jpg)
 <br><br>
+
 
 # Soal 2
 * Soal ini dikerjakan oleh 05111940000074 - Nur Ahmad Khatim.
@@ -147,11 +215,11 @@
 * Fork ketiga : Menerima input dari pipe2 kemudian diconcatenated dengan head -5 dan dikirim ke stdout
 <br><br>
 
+
 # Soal 3
 * Soal ini dikerjakan oleh 05111940000212 - Fadhil Dimas Sucahyo.
 <br><br>
 
 # Kendala
 * Soal 1
-  * Debug pada thread, server, dan client sulit untuk dilakukan.
-  * Kesulitan untuk mentransfer file gambar dan `.pdf`.
+  * Debug pada `thread`, `server.c`, dan `client.c` sulit untuk dilakukan.
