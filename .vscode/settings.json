@@ -7,7 +7,9 @@
         "stdlib.h": "c",
         "header.h": "c",
         "stdio.h": "c",
-        "ostream": "cpp"
+        "ostream": "cpp",
+        "pthread.h": "c",
+        "in.h": "c"
     },
     "C_Cpp.errorSquiggles": "Disabled",
     "editor.fontFamily": "'Fira Code'",

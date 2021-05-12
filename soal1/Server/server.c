@@ -12,7 +12,7 @@
 
 #define DATA_BUFFER 300
 #define MAX_CONNECTIONS 10
-#define CURR_DIR "/home/frain8/Documents/Sisop/Modul_3/soal_shift_3/soal1/Server"
+#define CURR_DIR "/mnt/c/Users/wilia/Documents/soal-shift-3/soal1/Server"
 
 int curr_fd = -1;
 char auth_user[2][DATA_BUFFER]; // [0] => id, [1] => pass
@@ -233,7 +233,7 @@ void add(char *buf, int fd)
     if (alreadyDownloaded(fp, fileName)) {
         send(fd, "Error, file is already uploaded\n", SIZE_BUFFER, 0);
     } else {
-        send(fd, "\nStart sending file\n", SIZE_BUFFER, 0);
+        send(fd, "Start sending file\n", SIZE_BUFFER, 0);
         mkdir(dirName, 0777);
         if (writeFile(fd, dirName, fileName) == 0) {
             fprintf(fp, "%s\t%s\t%s\n", fileName, publisher, year);
@@ -317,7 +317,7 @@ int sendFile(int fd, char *filename)
         send(fd, "File not found\n", SIZE_BUFFER, 0);
         return -1;
     }
-    send(fd, "\nStart receiving file\n", SIZE_BUFFER, 0);
+    send(fd, "Start receiving file\n", SIZE_BUFFER, 0);
     send(fd, buf, SIZE_BUFFER, 0);
 
     // Transfer size
@@ -346,7 +346,8 @@ char *getFileName(char *filePath)
 int writeFile(int fd, char *dirname, char *targetFileName)
 {
     int ret_val, size;
-    char buf[DATA_BUFFER], in[1];
+    char buf[DATA_BUFFER] = {0};
+    char in[1];
 
     // Make sure that client has the file
     ret_val = recv(fd, buf, DATA_BUFFER, 0);
@@ -355,7 +356,6 @@ int writeFile(int fd, char *dirname, char *targetFileName)
         else puts(buf);
         return -1;
     }
-    send(fd, "Roger", SIZE_BUFFER, 0);
     recv(fd, buf, SIZE_BUFFER, 0);
     size = atoi(buf);
 

@@ -10,8 +10,8 @@
 #include <stdbool.h>
 #include <sys/ioctl.h>
 
-#define DATA_BUFFER 500
-#define CURR_DIR "/home/frain8/Documents/Sisop/Modul_3/soal_shift_3/soal1/Client"
+#define DATA_BUFFER 300
+#define CURR_DIR "/mnt/c/Users/wilia/Documents/soal-shift-3/soal1/Client"
 
 const int SIZE_BUFFER = sizeof(char) * DATA_BUFFER;
 char inputPath[DATA_BUFFER];
@@ -67,12 +67,12 @@ void *handleOutput(void *client_fd)
         
         if (strcmp(message, "Filepath: ") == 0) {
             _inputPath = true;
-        } else if (strcmp(message, "\nStart sending file\n") == 0) {
+        } else if (strcmp(message, "Start sending file\n") == 0) {
             sendFile(fd);
             _inputPath = false;
         } else if (strcmp(message, "Error, file is already uploaded\n") == 0) {
             _inputPath = false;
-        } else if (strcmp(message, "\nStart receiving file\n") == 0) {
+        } else if (strcmp(message, "Start receiving file\n") == 0) {
             writeFile(fd);
         } 
         fflush(stdout);
@@ -88,7 +88,6 @@ void sendFile(int fd)
 
     if (fp) {
         send(fd, "File found", SIZE_BUFFER, 0);
-        recv(fd, buf, SIZE_BUFFER, 0);
 
         fseek(fp, 0L, SEEK_END);
         int size = ftell(fp);
