@@ -6,12 +6,10 @@
 #include <errno.h>
 #include <pthread.h>
 #include <sys/stat.h>
-#include <sys/epoll.h>
 #include <sys/ioctl.h>
 #include <netinet/in.h>
 
 #define DATA_BUFFER 300
-#define MAX_CONNECTIONS 10
 #define CURR_DIR "/home/frain8/Documents/Sisop/Modul_3/soal_shift_3/soal1/Server"
 
 int curr_fd = -1;
@@ -20,7 +18,6 @@ const int SIZE_BUFFER = sizeof(char) * DATA_BUFFER;
 
 // Socket setup
 int create_tcp_server_socket();
-void setup_epoll_connection(int epfd, int fd, struct epoll_event *event);
 
 // Routes & controller
 void *routes(void *argv);
@@ -47,29 +44,18 @@ int main()
 {
     socklen_t addrlen;
     struct sockaddr_in new_addr;
-    struct epoll_event connections[MAX_CONNECTIONS], epoll_temp;
     pthread_t tid;
     char buf[DATA_BUFFER], argv[DATA_BUFFER + 2];
     int new_fd, ret_val;
-
-    int timeout_msecs = 1500;
-    int epfd = epoll_create(1);
     int server_fd = create_tcp_server_socket();
-    setup_epoll_connection(epfd, server_fd, &epoll_temp);
 
     while (1) {
-        ret_val = epoll_wait(epfd, connections, MAX_CONNECTIONS, timeout_msecs /*timeout*/);
-        for (int i = 0; i < ret_val; i++) {
-            if (connections[i].data.fd == server_fd) {
-                new_fd = accept(server_fd, (struct sockaddr *)&new_addr, &addrlen);
-                if (new_fd >= 0) {
-                    setup_epoll_connection(epfd, new_fd, &epoll_temp);
-                    printf("Accepted a new connection with fd: %d\n", new_fd);
-                    pthread_create(&tid, NULL, &routes, (void *) &new_fd);
-                } else {
-                    fprintf(stderr, "Accept failed [%s]\n", strerror(errno));
-                }
-            }
+        new_fd = accept(server_fd, (struct sockaddr *)&new_addr, &addrlen);
+        if (new_fd >= 0) {
+            printf("Accepted a new connection with fd: %d\n", new_fd);
+            pthread_create(&tid, NULL, &routes, (void *) &new_fd);
+        } else {
+            fprintf(stderr, "Accept failed [%s]\n", strerror(errno));
         }
     } /* while(1) */
     return 0;
@@ -85,7 +71,7 @@ void *routes(void *argv)
         // public route
         if (fd != curr_fd) {
             if (getInput(fd, "\nSelect command:\n1. Login\n2. Register\n", cmd) == 0) break;
-            write(fd, "\n", sizeof(char));
+            write(fd, "\n", SIZE_BUFFER);
 
             if (strcmp(cmd, "login") == 0 || strcmp(cmd, "1") == 0) {
                 login(cmd, fd);
@@ -94,7 +80,7 @@ void *routes(void *argv)
                 regist(cmd, fd);
             } 
             else {
-                send(fd, "Error: Invalid command\n", sizeof(char) * 20, 0);
+                send(fd, "Error: Invalid command\n", SIZE_BUFFER, 0);
             }
         } else { 
             // protected route
@@ -106,7 +92,7 @@ void *routes(void *argv)
             strcat(prompt, "4. See\n");
             strcat(prompt, "5. Find <query string>\n");
             if (getInput(fd, prompt, cmd) == 0) break;
-            write(fd, "\n", sizeof(char));
+            write(fd, "\n", SIZE_BUFFER);
 
             if (strcmp(cmd, "add") == 0 || strcmp(cmd, "1") == 0) {
                 add(cmd, fd);
@@ -146,6 +132,7 @@ void *routes(void *argv)
 /****   Controllers   *****/
 void see(char *buf, int fd, bool isFind)
 {
+    int counter = 0;
     FILE *src = fopen("files.tsv", "r");
     if (!src) {
         write(fd, "Files.tsv not found\n", SIZE_BUFFER);
@@ -153,11 +140,12 @@ void see(char *buf, int fd, bool isFind)
     }
 
     char temp[DATA_BUFFER + 85], raw_filename[DATA_BUFFER/3], ext[5],
-        filepath[DATA_BUFFER/3], publisher[DATA_BUFFER/3], year[5];
+        filepath[DATA_BUFFER/3], publisher[DATA_BUFFER/3], year[10];
         
     while (fscanf(src, "%s\t%s\t%s", filepath, publisher, year) != EOF) {
         parseFilePath(filepath, raw_filename, ext);
         if (isFind && strstr(raw_filename, buf) == NULL) continue;
+        counter++;
 
         sprintf(temp, 
             "Nama: %s\nPublisher: %s\nTahun publishing: %s\nEkstensi File: %s\nFilepath: %s\n\n",
@@ -166,6 +154,10 @@ void see(char *buf, int fd, bool isFind)
         write(fd, temp, SIZE_BUFFER);
         sleep(0.001);
     }
+    if(counter == 0) {
+        if (isFind) write(fd, "Query not found in files.tsv\n", SIZE_BUFFER);
+        else write(fd, "Empty files.tsv\n", SIZE_BUFFER);
+    } 
     fclose(src);
 }
 
@@ -298,7 +290,7 @@ void parseFilePath(char *filepath, char *raw_filename, char *ext)
 {
     char *temp;
     if (temp = strrchr(filepath, '.')) strcpy(ext, temp + 1);
-    else ext = "";
+    else strcpy(ext, "-");
 
     strcpy(raw_filename, getFileName(filepath));
     strtok(raw_filename, ".");
@@ -472,12 +464,4 @@ int create_tcp_server_socket()
         exit(EXIT_FAILURE);
     }
     return fd;
-}
-
-void setup_epoll_connection(int epfd, int fd, struct epoll_event *event)
-{
-    event->events = EPOLLIN;
-    event->data.fd = fd;
-
-    epoll_ctl(epfd, EPOLL_CTL_ADD, fd, event);
 }
