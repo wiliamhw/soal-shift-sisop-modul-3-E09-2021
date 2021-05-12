@@ -12,7 +12,7 @@
 
 #define DATA_BUFFER 300
 #define MAX_CONNECTIONS 10
-#define CURR_DIR "/mnt/c/Users/wilia/Documents/soal-shift-3/soal1/Server"
+#define CURR_DIR "/home/frain8/Documents/Sisop/Modul_3/soal_shift_3/soal1/Server"
 
 int curr_fd = -1;
 char auth_user[2][DATA_BUFFER]; // [0] => id, [1] => pass
@@ -94,7 +94,7 @@ void *routes(void *argv)
                 regist(cmd, fd);
             } 
             else {
-                send(fd, "Invalid command\n", sizeof(char) * 20, 0);
+                send(fd, "Error: Invalid command\n", sizeof(char) * 20, 0);
             }
         } else { 
             // protected route
@@ -118,7 +118,7 @@ void *routes(void *argv)
                 char *tmp = strtok(cmd, " ");
                 char *tmp2 = strtok(NULL, " ");
                 if (!tmp2) {
-                    send(fd, "Second argument not specified\n", SIZE_BUFFER, 0);
+                    send(fd, "Error: Second argument not specified\n", SIZE_BUFFER, 0);
                 } 
                 else if (strcasecmp(tmp, "download") == 0) {
                     download(tmp2, fd);
@@ -130,7 +130,7 @@ void *routes(void *argv)
                     see(tmp2, fd, true);
                 }
                 else {
-                    send(fd, "Invalid command\n", SIZE_BUFFER, 0);
+                    send(fd, "Error: Invalid command\n", SIZE_BUFFER, 0);
                 }
             }
         }
@@ -173,7 +173,7 @@ void delete(char *filename, int fd)
 {
     // buf is the deleted filename
     FILE *fp = fopen("files.tsv", "a+");
-    char db[DATA_BUFFER], currFileName[DATA_BUFFER], publisher[DATA_BUFFER], year[DATA_BUFFER];
+    char db[DATA_BUFFER], currFilePath[DATA_BUFFER], publisher[DATA_BUFFER], year[DATA_BUFFER];
 
     if (alreadyDownloaded(fp, filename)) {
         rewind(fp);
@@ -181,8 +181,8 @@ void delete(char *filename, int fd)
 
         // Copy files.tsv to temp
         while (fgets(db, SIZE_BUFFER, fp)) {
-            sscanf(db, "%s\t%s\t%s", currFileName, publisher, year);
-            if (strcmp(currFileName, filename) != 0) { // Skip file with name equal to buf variable
+            sscanf(db, "%s\t%s\t%s", currFilePath, publisher, year);
+            if (strcmp(getFileName(currFilePath), filename) != 0) { // Skip file with name equal to buf variable
                 fprintf(tmp_fp, "%s", db);
             }
             memset(db, 0, SIZE_BUFFER);
@@ -203,7 +203,7 @@ void delete(char *filename, int fd)
         _log("delete", filename);
     } 
     else {
-        send(fd, "Error, file hasn't been downloaded\n", SIZE_BUFFER, 0);
+        send(fd, "Error: File hasn't been downloaded\n", SIZE_BUFFER, 0);
         fclose(fp);
     }
 }
@@ -214,7 +214,7 @@ void download(char *filename, int fd)
     if (alreadyDownloaded(fp, filename)) {
         sendFile(fd, filename);
     } else {
-        send(fd, "Error, file hasn't been downloaded\n", SIZE_BUFFER, 0);
+        send(fd, "Error: File hasn't been downloaded\n", SIZE_BUFFER, 0);
     }
     fclose(fp);
 }
@@ -223,6 +223,7 @@ void add(char *buf, int fd)
 {
     char *dirName = "FILES";
     char publisher[DATA_BUFFER], year[DATA_BUFFER], client_path[DATA_BUFFER];
+    sleep(0.001);
     if (getInput(fd, "Publisher: ", publisher) == 0) return;
     if (getInput(fd, "Tahun Publikasi: ", year) == 0) return;
     if (getInput(fd, "Filepath: ", client_path) == 0) return;
@@ -231,12 +232,12 @@ void add(char *buf, int fd)
     char *fileName = getFileName(client_path);
 
     if (alreadyDownloaded(fp, fileName)) {
-        send(fd, "Error, file is already uploaded\n", SIZE_BUFFER, 0);
+        send(fd, "Error: File is already uploaded\n", SIZE_BUFFER, 0);
     } else {
         send(fd, "Start sending file\n", SIZE_BUFFER, 0);
         mkdir(dirName, 0777);
         if (writeFile(fd, dirName, fileName) == 0) {
-            fprintf(fp, "%s\t%s\t%s\n", fileName, publisher, year);
+            fprintf(fp, "%s\t%s\t%s\n", client_path, publisher, year);
             printf("Store file finished\n");
             _log("add", fileName);
         } else {
@@ -425,7 +426,7 @@ bool alreadyDownloaded(FILE *fp, char *filename)
 {
     char db[DATA_BUFFER], *tmp;
     while (fscanf(fp, "%s", db) != EOF) {
-        tmp = strtok(db, "\t");
+        tmp = getFileName(strtok(db, "\t"));
         if (strcmp(tmp, filename) == 0) return true;
     }
     return false;

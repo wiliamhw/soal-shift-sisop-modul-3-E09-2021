@@ -118,14 +118,14 @@
    Nama:
    Publisher:
    Tahun publishing:
-   Ekstensi File : 
-   Filepath : 
+   Ekstensi File: 
+   Filepath: 
 
    Nama:
    Publisher:
    Tahun publishing:
-   Ekstensi File : 
-   Filepath : 
+   Ekstensi File: 
+   Filepath: 
 
    ```
 
