@@ -51,7 +51,6 @@ void *handleInput(void *client_fd)
         if (_inputPath) {
             strcpy(inputPath, message);
         }
-        // printf("Successfully sent data: %s\n", message);
     }
 }
 
@@ -88,13 +87,15 @@ void sendFile(int fd)
     char buf[DATA_BUFFER] = {0};
 
     if (fp) {
+        send(fd, "File found", SIZE_BUFFER, 0);
+        recv(fd, buf, SIZE_BUFFER, 0);
+
         fseek(fp, 0L, SEEK_END);
         int size = ftell(fp);
         rewind(fp);
         sprintf(buf, "%d", size);
-
-        send(fd, "File found", SIZE_BUFFER, 0);
         send(fd, buf, SIZE_BUFFER, 0);
+
         while ((ret_val = fread(buf, 1, 1, fp)) > 0) {
             send(fd, buf, 1, 0);
         } 

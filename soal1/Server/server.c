@@ -15,6 +15,7 @@
 #define CURR_DIR "/home/frain8/Documents/Sisop/Modul_3/soal_shift_3/soal1/Server"
 
 int curr_fd = -1;
+char auth_user[2][DATA_BUFFER]; // [0] => id, [1] => pass
 const int SIZE_BUFFER = sizeof(char) * DATA_BUFFER;
 
 // Socket setup
@@ -28,6 +29,8 @@ void regist(char *buf, int fd);
 void add(char *buf, int fd);
 void download(char *filename, int fd);
 void delete(char *filename, int fd);
+void see(char *buf, int fd, bool isFind);
+void _log(char *cmd, char *filepath);
 
 // Helper
 int getInput(int fd, char *prompt, char *storage);
@@ -38,6 +41,7 @@ char *getFileName(char *filePath);
 bool validLogin(FILE *fp, char *id, char *password);
 bool isRegistered(FILE *fp, char *id);
 bool alreadyDownloaded(FILE *fp, char *filename);
+void parseFilePath(char *filepath, char *raw_filename, char *ext);
 
 int main()
 {
@@ -46,7 +50,7 @@ int main()
     struct epoll_event connections[MAX_CONNECTIONS], epoll_temp;
     pthread_t tid;
     char buf[DATA_BUFFER], argv[DATA_BUFFER + 2];
-    int new_fd, ret_val, temp_fd, temp_ret_val;
+    int new_fd, ret_val;
 
     int timeout_msecs = 1500;
     int epfd = epoll_create(1);
@@ -81,6 +85,7 @@ void *routes(void *argv)
         // public route
         if (fd != curr_fd) {
             if (getInput(fd, "\nSelect command:\n1. Login\n2. Register\n", cmd) == 0) break;
+            write(fd, "\n", sizeof(char));
 
             if (strcmp(cmd, "login") == 0 || strcmp(cmd, "1") == 0) {
                 login(cmd, fd);
@@ -91,30 +96,39 @@ void *routes(void *argv)
             else {
                 send(fd, "Invalid command\n", sizeof(char) * 20, 0);
             }
-        } else { // protected route
+        } else { 
+            // protected route
             char prompt[DATA_BUFFER];
             strcpy(prompt, "\nSelect command:\n");
             strcat(prompt, "1. Add\n");
             strcat(prompt, "2. Download <filename with extension>\n");
             strcat(prompt, "3. Delete <filename with extension>\n");
+            strcat(prompt, "4. See\n");
+            strcat(prompt, "5. Find <query string>\n");
             if (getInput(fd, prompt, cmd) == 0) break;
+            write(fd, "\n", sizeof(char));
 
             if (strcmp(cmd, "add") == 0 || strcmp(cmd, "1") == 0) {
                 add(cmd, fd);
-            } else {
+            } 
+            else if (strcmp(cmd, "see") == 0 || strcmp(cmd, "4") == 0) {
+                see(cmd, fd, false);
+            }
+            else {
                 char *tmp = strtok(cmd, " ");
                 char *tmp2 = strtok(NULL, " ");
                 if (!tmp2) {
                     send(fd, "Second argument not specified\n", SIZE_BUFFER, 0);
                 } 
                 else if (strcasecmp(tmp, "download") == 0) {
-                    strcpy(cmd, tmp2);
-                    download(cmd, fd);
+                    download(tmp2, fd);
                 } 
                 else if (strcasecmp(tmp, "delete") == 0) {
-                    strcpy(cmd, tmp2);
-                    delete(cmd, fd);
-                } 
+                    delete(tmp2, fd);
+                }
+                else if (strcasecmp(tmp, "find") == 0) {
+                    see(tmp2, fd, true);
+                }
                 else {
                     send(fd, "Invalid command\n", SIZE_BUFFER, 0);
                 }
@@ -130,6 +144,31 @@ void *routes(void *argv)
 }
 
 /****   Controllers   *****/
+void see(char *buf, int fd, bool isFind)
+{
+    FILE *src = fopen("files.tsv", "r");
+    if (!src) {
+        write(fd, "Files.tsv not found\n", SIZE_BUFFER);
+        return;
+    }
+
+    char temp[DATA_BUFFER + 85], raw_filename[DATA_BUFFER/3], ext[5],
+        filepath[DATA_BUFFER/3], publisher[DATA_BUFFER/3], year[5];
+        
+    while (fscanf(src, "%s\t%s\t%s", filepath, publisher, year) != EOF) {
+        parseFilePath(filepath, raw_filename, ext);
+        if (isFind && strstr(raw_filename, buf) == NULL) continue;
+
+        sprintf(temp, 
+            "Nama: %s\nPublisher: %s\nTahun publishing: %s\nEkstensi File: %s\nFilepath: %s\n\n",
+            raw_filename, publisher, year, ext, filepath
+        );
+        write(fd, temp, SIZE_BUFFER);
+        sleep(0.001);
+    }
+    fclose(src);
+}
+
 void delete(char *filename, int fd)
 {
     // buf is the deleted filename
@@ -161,6 +200,7 @@ void delete(char *filename, int fd)
 
         rename(deletedFileName, newFileName);
         send(fd, "Delete file success\n", SIZE_BUFFER, 0);
+        _log("delete", filename);
     } 
     else {
         send(fd, "Error, file hasn't been downloaded\n", SIZE_BUFFER, 0);
@@ -198,6 +238,7 @@ void add(char *buf, int fd)
         if (writeFile(fd, dirName, fileName) == 0) {
             fprintf(fp, "%s\t%s\t%s\n", fileName, publisher, year);
             printf("Store file finished\n");
+            _log("add", fileName);
         } else {
             printf("Error occured when receiving file\n");
         }
@@ -218,6 +259,8 @@ void login(char *buf, int fd)
         if (validLogin(fp, id, password)) {
             send(fd, "Login success\n", SIZE_BUFFER, 0);
             curr_fd = fd;
+            strcpy(auth_user[0], id);
+            strcpy(auth_user[1], password);
         } else {
             send(fd, "Wrong id or password\n", SIZE_BUFFER, 0);
         }
@@ -242,6 +285,24 @@ void regist(char *buf, int fd)
 }
 
 /*****  HELPER  *****/
+void _log(char *cmd, char *filename)
+{
+    FILE *fp = fopen("running.log", "a+");
+    cmd = (strcmp(cmd, "add") == 0) ? "Tambah" : "Hapus";
+    fprintf(fp, "%s : %s (%s:%s)\n", cmd, filename, auth_user[0], auth_user[1]);
+    fclose(fp);
+}
+
+void parseFilePath(char *filepath, char *raw_filename, char *ext)
+{
+    char *temp;
+    if (temp = strrchr(filepath, '.')) strcpy(ext, temp + 1);
+    else ext = "";
+
+    strcpy(raw_filename, getFileName(filepath));
+    strtok(raw_filename, ".");
+}
+
 int sendFile(int fd, char *filename)
 {
     char buf[DATA_BUFFER] = {0};
@@ -278,7 +339,7 @@ int sendFile(int fd, char *filename)
 char *getFileName(char *filePath)
 {
     char *ret = strrchr(filePath, '/');
-    if (ret) return ret;
+    if (ret) return ret + 1;
     else return filePath;
 }
 
@@ -294,6 +355,7 @@ int writeFile(int fd, char *dirname, char *targetFileName)
         else puts(buf);
         return -1;
     }
+    send(fd, "Roger", SIZE_BUFFER, 0);
     recv(fd, buf, SIZE_BUFFER, 0);
     size = atoi(buf);
 
@@ -329,10 +391,11 @@ int getInput(int fd, char *prompt, char *storage)
     count /= DATA_BUFFER;
     for (int i = 0; i <= count; i++) {
         ret_val = recv(fd, storage, DATA_BUFFER, 0);
-        if (ret_val == 0) break;
+        if (ret_val == 0) return ret_val;
     }
     while (strcmp(storage, "") == 0) {
-        recv(fd, storage, DATA_BUFFER, 0);
+        ret_val = recv(fd, storage, DATA_BUFFER, 0);
+        if (ret_val == 0) return ret_val;
     }
     printf("Input: [%s]\n", storage);
     return ret_val;
