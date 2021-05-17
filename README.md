@@ -24,7 +24,7 @@
    ```
    
 ### Penyelesaian Soal
-1. Buat server dengan epoll.
+1. Buat server yang dapat menerima multi-connections.
 2. Buat thread untuk mengatur IO.
 3. Buat dua pilihan input, yaitu "register" dam "login".
 4. Buat fitur register.

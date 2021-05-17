@@ -45,9 +45,15 @@ int main()
     socklen_t addrlen;
     struct sockaddr_in new_addr;
     pthread_t tid;
+<<<<<<< HEAD
     char buf[DATA_BUFFER];
     int server_fd = create_tcp_server_socket();
     int new_fd;
+=======
+    char buf[DATA_BUFFER], argv[DATA_BUFFER + 2];
+    int new_fd, ret_val;
+    int server_fd = create_tcp_server_socket();
+>>>>>>> e0206e127100b766282d41149046cf0557589a97
 
     while (1) {
         new_fd = accept(server_fd, (struct sockaddr *)&new_addr, &addrlen);
