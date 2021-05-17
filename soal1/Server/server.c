@@ -45,9 +45,9 @@ int main()
     socklen_t addrlen;
     struct sockaddr_in new_addr;
     pthread_t tid;
-    char buf[DATA_BUFFER], argv[DATA_BUFFER + 2];
-    int new_fd, ret_val;
+    char buf[DATA_BUFFER];
     int server_fd = create_tcp_server_socket();
+    int new_fd;
 
     while (1) {
         new_fd = accept(server_fd, (struct sockaddr *)&new_addr, &addrlen);
@@ -379,17 +379,8 @@ int getInput(int fd, char *prompt, char *storage)
     send(fd, prompt, SIZE_BUFFER, 0);
 
     // Get input
-    int count, ret_val;
-    ioctl(fd, FIONREAD, &count);
-    count /= DATA_BUFFER;
-    for (int i = 0; i <= count; i++) {
-        ret_val = recv(fd, storage, DATA_BUFFER, 0);
-        if (ret_val == 0) return ret_val;
-    }
-    while (strcmp(storage, "") == 0) {
-        ret_val = recv(fd, storage, DATA_BUFFER, 0);
-        if (ret_val == 0) return ret_val;
-    }
+    ret_val = recv(fd, storage, DATA_BUFFER, 0);
+    if (ret_val == 0) return ret_val;
     printf("Input: [%s]\n", storage);
     return ret_val;
 }
