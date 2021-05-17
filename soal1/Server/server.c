@@ -379,9 +379,8 @@ int getInput(int fd, char *prompt, char *storage)
     send(fd, prompt, SIZE_BUFFER, 0);
 
     // Get input
-    ret_val = recv(fd, storage, DATA_BUFFER, 0);
-    if (ret_val == 0) return ret_val;
-    printf("Input: [%s]\n", storage);
+    int ret_val = recv(fd, storage, DATA_BUFFER, 0);
+    if (ret_val != 0) printf("Input: [%s]\n", storage);
     return ret_val;
 }
 
