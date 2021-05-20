@@ -11,7 +11,7 @@
 void *factorial(void* arg)
 {
     char hasil[1024];
-    char addword[5];
+    char addword[1024];
     char kali[] = "*";
     int *data = (int *)arg;
     int k = 1;
@@ -23,7 +23,7 @@ void *factorial(void* arg)
             if (cnt > 0) {
                 strncat(hasil, kali, 1);
             }
-            strncat(hasil, addword, 1);
+            strncat(hasil, addword, 10);
             cnt++;
         }
     }
@@ -34,7 +34,7 @@ void *factorial(void* arg)
             if (cnt > 0) {
                 strncat(hasil, kali, 1);
             }
-            strncat(hasil, addword, 1);
+            strncat(hasil, addword, 10);
             cnt++;
         }
     }
