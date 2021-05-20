@@ -8,9 +8,8 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <sys/ioctl.h>
 
-#define DATA_BUFFER 500
+#define DATA_BUFFER 300
 #define CURR_DIR "/home/frain8/Documents/Sisop/Modul_3/soal_shift_3/soal1/Client"
 
 const int SIZE_BUFFER = sizeof(char) * DATA_BUFFER;
@@ -43,7 +42,7 @@ void *handleInput(void *client_fd)
 {
     chdir(CURR_DIR);
     int fd = *(int *) client_fd;
-    char message[DATA_BUFFER];
+    char message[DATA_BUFFER] = {0};
 
     while (1) {
         gets(message);
@@ -51,7 +50,6 @@ void *handleInput(void *client_fd)
         if (_inputPath) {
             strcpy(inputPath, message);
         }
-        // printf("Successfully sent data: %s\n", message);
     }
 }
 
@@ -59,7 +57,7 @@ void *handleOutput(void *client_fd)
 {
     chdir(CURR_DIR);
     int fd = *(int *) client_fd;
-    char message[DATA_BUFFER];
+    char message[DATA_BUFFER] = {0};
 
     while (1) {
         memset(message, 0, SIZE_BUFFER);
@@ -68,12 +66,12 @@ void *handleOutput(void *client_fd)
         
         if (strcmp(message, "Filepath: ") == 0) {
             _inputPath = true;
-        } else if (strcmp(message, "\nStart sending file\n") == 0) {
+        } else if (strcmp(message, "Start sending file\n") == 0) {
             sendFile(fd);
             _inputPath = false;
-        } else if (strcmp(message, "Error, file is already uploaded\n") == 0) {
+        } else if (strcmp(message, "Error: file is already uploaded\n") == 0) {
             _inputPath = false;
-        } else if (strcmp(message, "\nStart receiving file\n") == 0) {
+        } else if (strcmp(message, "Start receiving file\n") == 0) {
             writeFile(fd);
         } 
         fflush(stdout);
@@ -88,13 +86,14 @@ void sendFile(int fd)
     char buf[DATA_BUFFER] = {0};
 
     if (fp) {
+        send(fd, "File found", SIZE_BUFFER, 0);
+
         fseek(fp, 0L, SEEK_END);
         int size = ftell(fp);
         rewind(fp);
         sprintf(buf, "%d", size);
-
-        send(fd, "File found", SIZE_BUFFER, 0);
         send(fd, buf, SIZE_BUFFER, 0);
+
         while ((ret_val = fread(buf, 1, 1, fp)) > 0) {
             send(fd, buf, 1, 0);
         } 
