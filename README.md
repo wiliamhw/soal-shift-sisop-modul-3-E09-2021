@@ -227,9 +227,10 @@
 
 ## Subsoal a
 ### Penjelasan
-* User bisa mengelompokan file dengan perintah `./soal3 <flag> [<path to file>.<ext>]`.
+* Program bisa mengelompokan file dengan flag `-f`.
+* Format dari perintah adalah `./soal3 -f [<path to file>.<ext>]`.
   * `[]` menandakan sebuah array/himpunan.
-* Jika `<flag>` sama dengan `-f`, kelompokan file di dalam `[<path to file>.<ext>]` ke folder yang sesuai dengan extensinya.
+* Perintah ini akan mengelompokan file di dalam `[<path to file>.<ext>]` ke folder yang sesuai dengan extensinya.
   * Jika terdapat lebih dari satu ekstensi (**.tar.gz**), file dimasukan ke dalam folder titik terdepan (**tar.gz**).
 * Jika pengelompokan suatu file berhasil, tampilkan `File <no>: Berhasil Dikategorisasikan`.
 * Jika gagal, tampilkan `File <no>: Sad, gagal :(`.
@@ -253,6 +254,17 @@
    6. Jika berhasil, tampilkan `File <no>: Berhasil Dikategorisasikan`.
    7. Jika gagal, tampilkan `File <no>: Sad, gagal :(`.
 
+
+## Subsoal b
+### Penjelasan
+* Program dapat melakukan pengkategorisasian direktori dengan flag `-d`.
+* Format dari perintah adalah: `./soal3 -d <path to directory/>`.
+* Jika berhasil, tampilkan `Direktori sukses disimpan!`.
+* Jika gagal, tampilkan `Yah, gagal disimpan :(`.
+
+### Penyelesaian
+1. Traverse semua file yang ada di dalam direktori secara rekursif.
+2. Kategorisasikan setiap file dan simpan pada working directory program C.
 <br><br>
 
 # Kendala

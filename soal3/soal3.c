@@ -20,7 +20,8 @@ void _moveFile(FILE *src_fp, const char *target_path);
 char *getFileName(char *file_path);
 char *getExtension(const char *file_name);
 char *toLower(char *str);
-bool isFile(const char *file_path);
+bool isDir(const char *file_path);
+bool validFileInfo(FileInfo *file_info, char *file_path);
 
 int main(int argc, char *argv[])
 {
@@ -36,10 +37,7 @@ int main(int argc, char *argv[])
 
     if (strcmp(argv[1], "-f") == 0) {
         for (int i = 0; i < argc; i++) {
-            strcpy(file_info[i].path, argv[i + 2]);
-            file_info[i].fp = fopen(file_info[i].path, "r");
-
-            if (file_info[i].fp && isFile(file_info[i].path)) {
+            if (validFileInfo(&file_info[i], argv[i + 2])) {
                 pthread_create(&tid[i], NULL, &moveFile, (void *) &file_info[i]);
                 printf("File %d: Berhasil Dikategorisasikan\n", i + 1);
                 success[i] = true;
@@ -48,17 +46,24 @@ int main(int argc, char *argv[])
                 success[i] = false;
             } 
         }
-        for (int i = 0; i < argc; i++) {
-            if (!success[i]) continue;
-            pthread_join(tid[i], NULL);
-            fclose(file_info[i].fp);
-        }
     } 
     else {
         printf("Flag tidak valid\n");
         return 1;
     }
+    for (int i = 0; i < argc; i++) {
+        if (!success[i]) continue;
+        pthread_join(tid[i], NULL);
+        fclose(file_info[i].fp);
+    }
     return 0;
+}
+
+bool validFileInfo(FileInfo *file_info, char *file_path)
+{
+    strcpy(file_info->path, file_path);
+    file_info->fp = fopen(file_info->path, "r");
+    return (file_info->fp && !isDir(file_info->path));
 }
 
 void *moveFile(void *buf)
@@ -115,9 +120,9 @@ char *getFileName(char *file_path)
     else return file_path;
 }
 
-bool isFile(const char *file_path)
+bool isDir(const char *file_path)
 {
     struct stat path_stat;
     stat(file_path, &path_stat);
-    return (S_ISREG(path_stat.st_mode) != 0);
+    return (S_ISDIR(path_stat.st_mode));
 }
