@@ -10,7 +10,6 @@
 #include <stdbool.h>
 
 #define DATA_BUFFER 300
-#define CURR_DIR "/home/frain8/Documents/Sisop/Modul_3/soal_shift_3/soal1/Client"
 
 const int SIZE_BUFFER = sizeof(char) * DATA_BUFFER;
 char inputPath[DATA_BUFFER];
@@ -40,7 +39,6 @@ int main()
 
 void *handleInput(void *client_fd)
 {
-    chdir(CURR_DIR);
     int fd = *(int *) client_fd;
     char message[DATA_BUFFER] = {0};
 
@@ -55,7 +53,6 @@ void *handleInput(void *client_fd)
 
 void *handleOutput(void *client_fd) 
 {
-    chdir(CURR_DIR);
     int fd = *(int *) client_fd;
     char message[DATA_BUFFER] = {0};
 

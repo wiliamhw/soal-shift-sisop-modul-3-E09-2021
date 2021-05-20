@@ -9,7 +9,6 @@
 #include <dirent.h>
 
 #define SIZE_BUFFER 400
-#define CURR_DIR "/home/frain8/Documents/Sisop/Modul_3/soal_shift_3/soal3" // disable on prod
 
 typedef struct {
     char path[SIZE_BUFFER];
@@ -33,10 +32,7 @@ bool validFileInfo(FileInfo *file_info, char *file_path);
 
 int main(int argc, char *argv[])
 {
-    printCWD(); // disable on prod
-    chdir(CURR_DIR); // disable on prod
     int i = 0;
-
     if (argc < 3) {
         if (strcmp(argv[1], "*") == 0) {
             listFilesRecursively(".", &i, 0);
@@ -106,8 +102,6 @@ void listFilesRecursively(char *base_path, int *i, int depth)
 
 void *moveFile(void *buf)
 {
-    printCWD(); // disable on prod
-    chdir(CURR_DIR); // disable on prod
     char target_path[SIZE_BUFFER], filename[SIZE_BUFFER / 2], ext[SIZE_BUFFER / 2];
     FileInfo src_info = *(FileInfo *) buf;
 
@@ -178,11 +172,4 @@ bool validFileInfo(FileInfo *file_info, char *file_path)
     strcpy(file_info->path, file_path);
     file_info->fp = fopen(file_info->path, "r");
     return (file_info->fp && !isDir);
-}
-
-void printCWD()
-{
-    char buf[SIZE_BUFFER];
-    getcwd(buf, sizeof(buf));
-    printf("CWD: %s\n", buf);
 }

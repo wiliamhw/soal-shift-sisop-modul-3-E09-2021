@@ -283,6 +283,12 @@
 ### Penyelesaian
 * Pada fungsi `getExtension`, return string `Hidden` dan `Unknown` sesuai ketentuan yang berlaku.
 
+## Subsoal e
+### Penjelasan
+* Setiap 1 file dikategorikan dalam 1 thread.
+
+### Penyelesaian
+* Pada penyelesaian subsoal a, lakukan penyelesaian no.3 dalam thread.
 <br><br>
 
 # Kendala
