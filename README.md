@@ -248,7 +248,6 @@
       * Jika tidak sesuai, gagalkan operasi dan lanjut ke input file berikutnya. 
    3. Dapatkan ekstensi dari file dan simpan ke dalam variabel `ext`.
       * Jika terdapat lebih dari satu ekstensi (**.tar.gz**), file dimasukan ke dalam folder titik terdepan (**tar.gz**).
-      * Jika file tidak memiliki ekstensi, file dimasukan ke dalam folder `' '`.
    4. Jika belum ada folder bernama `ext`, buat folder tersebut.
    5. Pindahkan file ke folder `ext`.
    6. Jika berhasil, tampilkan `File <no>: Berhasil Dikategorisasikan`.
@@ -265,6 +264,25 @@
 ### Penyelesaian
 1. Traverse semua file yang ada di dalam direktori secara rekursif.
 2. Kategorisasikan setiap file dan simpan pada working directory program C.
+
+
+## Subsoal c
+### Penjelasan
+* Program dapat menerima flag `*`.
+* Perintah ini akan mengkategorikan seluruh file yg ada di working directory.
+
+### Penyelesaian
+* Jalankan fungsi pada subsoal b di current working directory.
+
+
+## Subsoal d
+### Penjelasan
+* File yang tidak memiliki ekstensi disimpan di folder `Unknown`.
+* File `hidden` disimpan di folder `Hidden`.
+
+### Penyelesaian
+* Jalankan fungsi pada subsoal b di current working directory. 
+
 <br><br>
 
 # Kendala

@@ -9,7 +9,7 @@
 #include <dirent.h>
 
 #define SIZE_BUFFER 400
-#define CURR_DIR "/home/frain8/Documents/Sisop/Modul_3/soal_shift_3/soal3"
+#define CURR_DIR "/home/frain8/Documents/Sisop/Modul_3/soal_shift_3/soal3" // disable on prod
 
 typedef struct {
     char path[SIZE_BUFFER];
@@ -28,41 +28,46 @@ void listFilesRecursively(char *base_path, int *i, int depth);
 char *getFileName(char *file_path);
 char *getExtension(const char *file_name);
 char *toLower(char *str);
+void printCWD();
 bool validFileInfo(FileInfo *file_info, char *file_path);
 
 int main(int argc, char *argv[])
 {
-    chdir(CURR_DIR);
-    if (argc < 3) {
-        printf("Tidak ada flag/file yang akan dikelompokan\n");
-        return 1;
-    }
-    argc -= 2;
+    printCWD(); // disable on prod
+    chdir(CURR_DIR); // disable on prod
     int i = 0;
 
-    if (strcmp(argv[1], "-f") == 0) {
-        for (; i < argc; i++) {
-            if (validFileInfo(&file_info[i], argv[i + 2])) {
-                pthread_create(&tid[i], NULL, &moveFile, (void *) &file_info[i]);
-                printf("File %d: Berhasil Dikategorisasikan\n", i + 1);
-                success[i] = true;
-            } else {
-                printf("File %d: Sad, gagal :(\n", i + 1);
-                success[i] = false;
-            } 
+    if (argc < 3) {
+        if (strcmp(argv[1], "*") == 0) {
+            listFilesRecursively(".", &i, 0);
+        } else {
+            printf("Tidak ada flag/file yang akan dikelompokan\n");
+            return 1;
+        } 
+    } else {
+        argc -= 2;
+        if (strcmp(argv[1], "-f") == 0) {
+            for (; i < argc; i++) {
+                if (validFileInfo(&file_info[i], argv[i + 2])) {
+                    pthread_create(&tid[i], NULL, &moveFile, (void *) &file_info[i]);
+                    printf("File %d: Berhasil Dikategorisasikan\n", i + 1);
+                    success[i] = true;
+                } else {
+                    printf("File %d: Sad, gagal :(\n", i + 1);
+                    success[i] = false;
+                } 
+            }
+        } else if (strcmp(argv[1], "-d") == 0) {
+            listFilesRecursively(argv[2], &i, 0);
         }
-    }
-    else if (strcmp(argv[1], "-d") == 0) {
-        listFilesRecursively(argv[2], &i, 0);
-    }
-    else {
-        printf("Flag tidak valid\n");
-        return 1;
+        else {
+            printf("Flag tidak valid\n");
+            return 1;
+        }
     }
     for (int j = 0; j <= i; j++) {
         if (!success[j]) continue;
         pthread_join(tid[j], NULL);
-        fclose(file_info[j].fp);
     }
     return 0;
 }
@@ -101,7 +106,8 @@ void listFilesRecursively(char *base_path, int *i, int depth)
 
 void *moveFile(void *buf)
 {
-    chdir(CURR_DIR);
+    printCWD(); // disable on prod
+    chdir(CURR_DIR); // disable on prod
     char target_path[SIZE_BUFFER], filename[SIZE_BUFFER / 2], ext[SIZE_BUFFER / 2];
     FileInfo src_info = *(FileInfo *) buf;
 
@@ -111,6 +117,8 @@ void *moveFile(void *buf)
     mkdir(ext, 0777);
     sprintf(target_path, "%s/%s", ext, filename);
     _moveFile(src_info.fp, target_path);
+    fclose(src_info.fp);
+    remove(src_info.path);
 }
 
 void _moveFile(FILE *src_fp, const char *target_path)
@@ -163,4 +171,11 @@ bool validFileInfo(FileInfo *file_info, char *file_path)
     strcpy(file_info->path, file_path);
     file_info->fp = fopen(file_info->path, "r");
     return (file_info->fp && !isDir);
+}
+
+void printCWD()
+{
+    char buf[SIZE_BUFFER];
+    getcwd(buf, sizeof(buf));
+    printf("CWD: %s\n", buf);
 }
