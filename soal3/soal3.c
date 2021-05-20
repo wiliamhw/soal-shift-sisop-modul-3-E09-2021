@@ -135,9 +135,10 @@ void _moveFile(FILE *src_fp, const char *target_path)
 /*** Helpers ***/
 char *toLower(char *str)
 {
-    for(int i = 0; str[i]; i++){
-        if (str[i] == ' ') continue;
-        str[i] = tolower(str[i]);
+    if (strcasecmp(str, "Hidden") != 0 && strcasecmp(str, "Unknown") != 0) {
+        for(int i = 0; str[i]; i++){
+            str[i] = tolower(str[i]);
+        }
     }
     return str;
 }
@@ -145,11 +146,17 @@ char *toLower(char *str)
 char *getExtension(const char *file_name)
 {
     char temp[SIZE_BUFFER];
+    char *result = NULL;
     strcpy(temp, file_name);
 
-    char *ext = strchr(temp, '.');
-    if (ext) return ext + 1;
-    else return " ";
+    if (temp[0] == '.') {
+        result = "Hidden";
+    } else {
+        char *ext = strchr(temp, '.');
+        if (ext) result = ext + 1;
+        else result = "Unknown";
+    }
+    return result;
 }
 
 char *getFileName(char *file_path)

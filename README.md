@@ -241,17 +241,16 @@
    * Jika jumlah kata pada perintah < 3, print `Tidak ada flag/file yang akan dikelompokan`.
    * Jika flag tidak valid, print `Flag tidak valid`.
    * Flag dalam subsoal ini adalah `-f`.
-2. Dapatkan banyak file dan path milik setiap file yang akan dikelompokan dari perintah.
+2. Dapatkan banyak file dan path milik setiap file yang akan dikelompokan.
 3. Untuk setiap file, lakukan hal berikut:
-   1. Buatlah thread yang akan menjalankan perintah berikut ini.
-   2. Pastikan bahwa input file ada pada path yang tertera dan bukan merupakan folder.
+   1. Pastikan bahwa input file ada pada path yang tertera dan bukan merupakan folder.
       * Jika tidak sesuai, gagalkan operasi dan lanjut ke input file berikutnya. 
-   3. Dapatkan ekstensi dari file dan simpan ke dalam variabel `ext`.
+   2. Dapatkan ekstensi dari file dan simpan ke dalam variabel `ext`.
       * Jika terdapat lebih dari satu ekstensi (**.tar.gz**), file dimasukan ke dalam folder titik terdepan (**tar.gz**).
-   4. Jika belum ada folder bernama `ext`, buat folder tersebut.
-   5. Pindahkan file ke folder `ext`.
-   6. Jika berhasil, tampilkan `File <no>: Berhasil Dikategorisasikan`.
-   7. Jika gagal, tampilkan `File <no>: Sad, gagal :(`.
+   3. Jika belum ada folder bernama `ext`, buat folder tersebut.
+   4. Pindahkan file ke folder `ext`.
+   5. Jika berhasil, tampilkan `File <no>: Berhasil Dikategorisasikan`.
+   6. Jika gagal, tampilkan `File <no>: Sad, gagal :(`.
 
 
 ## Subsoal b
@@ -278,10 +277,11 @@
 ## Subsoal d
 ### Penjelasan
 * File yang tidak memiliki ekstensi disimpan di folder `Unknown`.
-* File `hidden` disimpan di folder `Hidden`.
+* File hidden disimpan di folder `Hidden`.
+  * File hidden adalah file yang namanya diawali oleh `.`.
 
 ### Penyelesaian
-* Jalankan fungsi pada subsoal b di current working directory. 
+* Pada fungsi `getExtension`, return string `Hidden` dan `Unknown` sesuai ketentuan yang berlaku.
 
 <br><br>
 
