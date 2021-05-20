@@ -27,7 +27,6 @@ void listFilesRecursively(char *base_path, int *i, int depth);
 char *getFileName(char *file_path);
 char *getExtension(const char *file_name);
 char *toLower(char *str);
-void printCWD();
 bool validFileInfo(FileInfo *file_info, char *file_path);
 
 int main(int argc, char *argv[])
