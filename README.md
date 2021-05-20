@@ -217,9 +217,43 @@
 
 
 # Soal 3
-* Soal ini dikerjakan oleh 05111940000212 - Fadhil Dimas Sucahyo.
+* Soal ini dikerjakan oleh 05111940000087 - William Handi Wijaya dan 05111940000212 - Fadhil Dimas Sucahyo.
+* Kategori folder harus dibuat melalui program C.
+* Program ini tidak case sensitive (**JPG" == **jpg**).
+* Jika ekstensi lebih dari satu (**.tar.gz**), maka file akan masuk ke folder dengan titik terdepan (**tar.gz**).
+* Dilarang menggunakan `for-exec` dan `system()`.
+* Subsoal b dan c bersifat **rekursif**.
+
+
+## Subsoal a
+### Penjelasan
+* User bisa mengelompokan file dengan perintah `./soal3 <flag> [<path to file>.<ext>]`.
+  * `[]` menandakan sebuah array/himpunan.
+* Jika `<flag>` sama dengan `-f`, kelompokan file di dalam `[<path to file>.<ext>]` ke folder yang sesuai dengan extensinya.
+  * Jika terdapat lebih dari satu ekstensi (**.tar.gz**), file dimasukan ke dalam folder titik terdepan (**tar.gz**).
+* Jika pengelompokan suatu file berhasil, tampilkan `File <no>: Berhasil Dikategorisasikan`.
+* Jika gagal, tampilkan `File <no>: Sad, gagal :(`.
+* Variabel `<no>` dimulai dari 1.
+
+### Penyelesaian
+1. Pastikan bahwa perintah memiliki flag yang valid dan minimal 1 file yang akan dikelompokkan.
+   * Jika jumlah kata pada perintah < 3, print `Tidak ada flag/file yang akan dikelompokan`.
+   * Jika flag tidak valid, print `Flag tidak valid`.
+   * Flag dalam subsoal ini adalah `-f`.
+2. Dapatkan banyak file dan path milik setiap file yang akan dikelompokan dari perintah.
+3. Untuk setiap file, lakukan hal berikut:
+   1. Buatlah thread yang akan menjalankan perintah berikut ini.
+   2. Pastikan bahwa input file ada pada path yang tertera dan bukan merupakan folder.
+      * Jika tidak sesuai, gagalkan operasi dan lanjut ke input file berikutnya. 
+   3. Dapatkan ekstensi dari file dan simpan ke dalam variabel `ext`.
+      * Jika terdapat lebih dari satu ekstensi (**.tar.gz**), file dimasukan ke dalam folder titik terdepan (**tar.gz**).
+      * Jika file tidak memiliki ekstensi, file dimasukan ke dalam folder `' '`.
+   4. Jika belum ada folder bernama `ext`, buat folder tersebut.
+   5. Pindahkan file ke folder `ext`.
+   6. Jika berhasil, tampilkan `File <no>: Berhasil Dikategorisasikan`.
+   7. Jika gagal, tampilkan `File <no>: Sad, gagal :(`.
+
 <br><br>
 
 # Kendala
-* Soal 1
-  * Debug pada `thread`, `server.c`, dan `client.c` sulit untuk dilakukan.
+* Pada soal1, debug pada `thread`, `server.c`, dan `client.c` sulit untuk dilakukan.
