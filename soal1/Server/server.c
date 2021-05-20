@@ -10,7 +10,6 @@
 #include <netinet/in.h>
 
 #define DATA_BUFFER 300
-#define CURR_DIR "/home/frain8/Documents/Sisop/Modul_3/soal_shift_3/soal1/Server"
 
 int curr_fd = -1;
 char auth_user[2][DATA_BUFFER]; // [0] => id, [1] => pass
@@ -65,7 +64,6 @@ void *routes(void *argv)
 {
     int fd = *(int *) argv;
     char cmd[DATA_BUFFER];
-    chdir(CURR_DIR);
 
     while (recv(fd, cmd, DATA_BUFFER, MSG_PEEK | MSG_DONTWAIT) != 0) {
         // public route
