@@ -22,7 +22,7 @@ bool success[5000];
 
 void *moveFile(void *buf);
 void _moveFile(FILE *src_fp, const char *target_path);
-int listFilesRecursively(char *base_path, int *i);
+void listFilesRecursively(char *base_path, int *i, int depth);
 
 /** Helpers **/
 char *getFileName(char *file_path);
@@ -53,12 +53,7 @@ int main(int argc, char *argv[])
         }
     }
     else if (strcmp(argv[1], "-d") == 0) {
-        int ret_val = listFilesRecursively(argv[2], &i);
-        if (ret_val == 0) {
-            printf("Direktori sukses disimpan!\n");
-        } else {
-            printf("Yah, gagal disimpan :(\n");
-        }
+        listFilesRecursively(argv[2], &i, 0);
     }
     else {
         printf("Flag tidak valid\n");
@@ -72,14 +67,15 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-int listFilesRecursively(char *base_path, int *i)
+void listFilesRecursively(char *base_path, int *i, int depth)
 {
     char path[1000];
     struct dirent *dc; // Store one dir content
 
     DIR *dir = opendir(base_path);
     if (dir == NULL) {
-        return -1;
+        if (depth == 0) printf("Yah, gagal disimpan :(\n");
+        return;
     }
     while ((dc = readdir(dir)) != NULL) {
         if (strcmp(dc->d_name, ".") != 0 && strcmp(dc->d_name, "..") != 0) {
@@ -96,11 +92,11 @@ int listFilesRecursively(char *base_path, int *i)
             } else {
                 success[*i] = false;
             } 
-            listFilesRecursively(path, i);
+            listFilesRecursively(path, i, depth + 1);
         }
     }
+    if (depth == 0) printf("Direktori sukses disimpan!\n");
     closedir(dir);
-    return 0;
 }
 
 void *moveFile(void *buf)
