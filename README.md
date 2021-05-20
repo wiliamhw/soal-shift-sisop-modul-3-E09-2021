@@ -100,8 +100,8 @@
 1. Pastikan client sudah login ke server.
 2. Dapatkan nama file dan ekstensi dari file yang ingin dihapus.
 3. Pastikan file tersebut ada di **files.tsv**.
-   2. Jika tidak ada, tampilkan pesan **Error, file hasn't been downloaded** ke client.
-   3. Kembali ke menu pemilihan perintah.
+   1. Jika tidak ada, tampilkan pesan **Error, file hasn't been downloaded** ke client.
+   2. Kembali ke menu pemilihan perintah.
 4. Hapus kolom dari file tersebut di **file.tsv**.
    1. Copy setiap baris dari **file.tsv** ke file baru bernama **temp**.
       * Nama file yang ingin dihapus tidak ikut dicopy.
@@ -142,7 +142,7 @@
 ## Subsoal g
 ### Penjelasan Soal
 * Perintah pada subsoal ini adalah `find <query string>`
-* Hasilnya adalah semua nama file yang mengantung `<query string>` yand ditulis pada perintah `find`.
+* Hasilnya adalah semua nama file yang mengantung `<query string>` yang ditulis pada perintah `find`.
 * Format output sama dengan format pada subsoal f.
 
 ### Penyelesaian Soal
