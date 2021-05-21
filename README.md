@@ -46,7 +46,7 @@
 ## Subsoal b & c
 ### Penjelasan Soal
 * Sistem memiliki file bernama **files.tsv** yang dengan format:  
-   `<path file di server>|<publisher>|<tahun publikasi>`
+   `<path file di server>\t<publisher>\t<tahun publikasi>`
 * File **files.tsv** merupakan database dari input file yang disimpan di folder **FILES**.
 * Struktur dari direktori **FILES** adalah sebagai berikut:
    ```
@@ -57,7 +57,7 @@
    ```
    Publisher:
    Tahun Publikasi:
-   Filepath: <*client's local filepath*>
+   Filepath: <client's local filepath>
    ```
 * Simpan file yang baru di upload ke folder **FILES** dan update **files.tsv**.
    

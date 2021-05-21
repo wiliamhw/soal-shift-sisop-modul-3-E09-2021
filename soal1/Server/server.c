@@ -20,8 +20,8 @@ int create_tcp_server_socket();
 
 // Routes & controller
 void *routes(void *argv);
-void login(char *buf, int fd);
-void regist(char *buf, int fd);
+void login(int fd);
+void regist(int fd);
 void add(char *buf, int fd);
 void download(char *filename, int fd);
 void delete(char *filename, int fd);
@@ -72,10 +72,10 @@ void *routes(void *argv)
             write(fd, "\n", SIZE_BUFFER);
 
             if (strcmp(cmd, "login") == 0 || strcmp(cmd, "1") == 0) {
-                login(cmd, fd);
+                login(fd);
             } 
             else if (strcmp(cmd, "register") == 0 || strcmp(cmd, "2") == 0) {
-                regist(cmd, fd);
+                regist(fd);
             } 
             else {
                 send(fd, "Error: Invalid command\n", SIZE_BUFFER, 0);
@@ -237,7 +237,7 @@ void add(char *buf, int fd)
     fclose(fp);
 }
 
-void login(char *buf, int fd)
+void login(int fd)
 {
     if (curr_fd != -1) {
         send(fd, "Server is busy. Wait until other client has logout.\n", SIZE_BUFFER, 0);
@@ -259,7 +259,7 @@ void login(char *buf, int fd)
     fclose(fp);
 }
 
-void regist(char *buf, int fd)
+void regist(int fd)
 {
     char id[DATA_BUFFER], password[DATA_BUFFER];
     FILE *fp = fopen("akun.txt", "a+");
