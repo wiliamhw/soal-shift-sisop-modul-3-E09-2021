@@ -46,7 +46,7 @@
 ## Subsoal b & c
 ### Penjelasan Soal
 * Sistem memiliki file bernama **files.tsv** yang dengan format:  
-   `<path file di server>|<publisher>|<tahun publikasi>`
+   `<path file di server>\t<publisher>\t<tahun publikasi>`
 * File **files.tsv** merupakan database dari input file yang disimpan di folder **FILES**.
 * Struktur dari direktori **FILES** adalah sebagai berikut:
    ```
@@ -57,7 +57,7 @@
    ```
    Publisher:
    Tahun Publikasi:
-   Filepath: <*client's local filepath*>
+   Filepath: <client's local filepath>
    ```
 * Simpan file yang baru di upload ke folder **FILES** dan update **files.tsv**.
    
@@ -136,7 +136,7 @@
 4. Print kelima data tersebut ke terminal client dengan perintah `send` atau `write`.
 
 ### Output
-![Output soal 1f](https://res.cloudinary.com/dx3jourdf/image/upload/v1620745746/Output_soal1f_prufvj.png)
+![Output soal 1f](https://res.cloudinary.com/dx3jourdf/image/upload/v1621669136/Output_soal1f_c0rkbu.png)
 
 
 ## Subsoal g
@@ -153,7 +153,7 @@
 5. Jika iya, print detail dari file tersebut ke terminal client.
 
 ### Output
-![Output soal 1g](https://res.cloudinary.com/dx3jourdf/image/upload/v1620748554/Output_soal1g_nygix9.png)
+![Output soal 1g](https://res.cloudinary.com/dx3jourdf/image/upload/v1621669132/Output_soal1g_ovx4wf.png)
 
 
 ## Subsoal h
@@ -217,9 +217,79 @@
 
 
 # Soal 3
-* Soal ini dikerjakan oleh 05111940000212 - Fadhil Dimas Sucahyo.
+* Soal ini dikerjakan oleh 05111940000087 - William Handi Wijaya dan 05111940000212 - Fadhil Dimas Sucahyo.
+* Kategori folder harus dibuat melalui program C.
+* Program ini tidak case sensitive (**JPG" == **jpg**).
+* Jika ekstensi lebih dari satu (**.tar.gz**), maka file akan masuk ke folder dengan titik terdepan (**tar.gz**).
+* Dilarang menggunakan `for-exec` dan `system()`.
+* Subsoal b dan c bersifat **rekursif**.
+
+
+## Subsoal a
+### Penjelasan
+* Program bisa mengelompokan file dengan flag `-f`.
+* Format dari perintah adalah `./soal3 -f [<path to file>.<ext>]`.
+  * `[]` menandakan sebuah array/himpunan.
+* Perintah ini akan mengelompokan file di dalam `[<path to file>.<ext>]` ke folder yang sesuai dengan extensinya.
+  * Jika terdapat lebih dari satu ekstensi (**.tar.gz**), file dimasukan ke dalam folder titik terdepan (**tar.gz**).
+* Jika pengelompokan suatu file berhasil, tampilkan `File <no>: Berhasil Dikategorisasikan`.
+* Jika gagal, tampilkan `File <no>: Sad, gagal :(`.
+* Variabel `<no>` dimulai dari 1.
+
+### Penyelesaian
+1. Pastikan bahwa perintah memiliki flag yang valid dan minimal 1 file yang akan dikelompokkan.
+   * Jika jumlah kata pada perintah < 3, print `Tidak ada flag/file yang akan dikelompokan`.
+   * Jika flag tidak valid, print `Flag tidak valid`.
+   * Flag dalam subsoal ini adalah `-f`.
+2. Dapatkan banyak file dan path milik setiap file yang akan dikelompokan.
+3. Untuk setiap file, lakukan hal berikut:
+   1. Pastikan bahwa input file ada pada path yang tertera dan bukan merupakan folder.
+      * Jika tidak sesuai, gagalkan operasi dan lanjut ke input file berikutnya. 
+   2. Dapatkan ekstensi dari file dan simpan ke dalam variabel `ext`.
+      * Jika terdapat lebih dari satu ekstensi (**.tar.gz**), file dimasukan ke dalam folder titik terdepan (**tar.gz**).
+   3. Jika belum ada folder bernama `ext`, buat folder tersebut.
+   4. Pindahkan file ke folder `ext`.
+   5. Jika berhasil, tampilkan `File <no>: Berhasil Dikategorisasikan`.
+   6. Jika gagal, tampilkan `File <no>: Sad, gagal :(`.
+
+
+## Subsoal b
+### Penjelasan
+* Program dapat melakukan pengkategorisasian direktori dengan flag `-d`.
+* Format dari perintah adalah: `./soal3 -d <path to directory/>`.
+* Jika berhasil, tampilkan `Direktori sukses disimpan!`.
+* Jika gagal, tampilkan `Yah, gagal disimpan :(`.
+
+### Penyelesaian
+1. Traverse semua file yang ada di dalam direktori secara rekursif.
+2. Kategorisasikan setiap file dan simpan pada working directory program C.
+
+
+## Subsoal c
+### Penjelasan
+* Program dapat menerima flag `*`.
+* Perintah ini akan mengkategorikan seluruh file yg ada di working directory.
+
+### Penyelesaian
+* Jalankan fungsi pada subsoal b di current working directory.
+
+
+## Subsoal d
+### Penjelasan
+* File yang tidak memiliki ekstensi disimpan di folder `Unknown`.
+* File hidden disimpan di folder `Hidden`.
+  * File hidden adalah file yang namanya diawali oleh `.`.
+
+### Penyelesaian
+* Pada fungsi `getExtension`, return string `Hidden` dan `Unknown` sesuai ketentuan yang berlaku.
+
+## Subsoal e
+### Penjelasan
+* Setiap 1 file dikategorikan dalam 1 thread.
+
+### Penyelesaian
+* Pada penyelesaian subsoal a, lakukan penyelesaian no.3 dalam thread.
 <br><br>
 
 # Kendala
-* Soal 1
-  * Debug pada `thread`, `server.c`, dan `client.c` sulit untuk dilakukan.
+* Pada soal1, debug pada `thread`, `server.c`, dan `client.c` sulit untuk dilakukan.

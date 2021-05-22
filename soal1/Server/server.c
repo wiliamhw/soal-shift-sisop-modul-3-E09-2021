@@ -10,7 +10,6 @@
 #include <netinet/in.h>
 
 #define DATA_BUFFER 300
-#define CURR_DIR "/home/frain8/Documents/Sisop/Modul_3/soal_shift_3/soal1/Server"
 
 int curr_fd = -1;
 char auth_user[2][DATA_BUFFER]; // [0] => id, [1] => pass
@@ -21,8 +20,8 @@ int create_tcp_server_socket();
 
 // Routes & controller
 void *routes(void *argv);
-void login(char *buf, int fd);
-void regist(char *buf, int fd);
+void login(int fd);
+void regist(int fd);
 void add(char *buf, int fd);
 void download(char *filename, int fd);
 void delete(char *filename, int fd);
@@ -65,7 +64,6 @@ void *routes(void *argv)
 {
     int fd = *(int *) argv;
     char cmd[DATA_BUFFER];
-    chdir(CURR_DIR);
 
     while (recv(fd, cmd, DATA_BUFFER, MSG_PEEK | MSG_DONTWAIT) != 0) {
         // public route
@@ -74,10 +72,10 @@ void *routes(void *argv)
             write(fd, "\n", SIZE_BUFFER);
 
             if (strcmp(cmd, "login") == 0 || strcmp(cmd, "1") == 0) {
-                login(cmd, fd);
+                login(fd);
             } 
             else if (strcmp(cmd, "register") == 0 || strcmp(cmd, "2") == 0) {
-                regist(cmd, fd);
+                regist(fd);
             } 
             else {
                 send(fd, "Error: Invalid command\n", SIZE_BUFFER, 0);
@@ -229,7 +227,7 @@ void add(char *buf, int fd)
         send(fd, "Start sending file\n", SIZE_BUFFER, 0);
         mkdir(dirName, 0777);
         if (writeFile(fd, dirName, fileName) == 0) {
-            fprintf(fp, "%s\t%s\t%s\n", client_path, publisher, year);
+            fprintf(fp, "%s/%s\t%s\t%s\n", dirName, fileName, publisher, year);
             printf("Store file finished\n");
             _log("add", fileName);
         } else {
@@ -239,7 +237,7 @@ void add(char *buf, int fd)
     fclose(fp);
 }
 
-void login(char *buf, int fd)
+void login(int fd)
 {
     if (curr_fd != -1) {
         send(fd, "Server is busy. Wait until other client has logout.\n", SIZE_BUFFER, 0);
@@ -261,7 +259,7 @@ void login(char *buf, int fd)
     fclose(fp);
 }
 
-void regist(char *buf, int fd)
+void regist(int fd)
 {
     char id[DATA_BUFFER], password[DATA_BUFFER];
     FILE *fp = fopen("akun.txt", "a+");
