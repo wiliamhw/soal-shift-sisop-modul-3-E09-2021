@@ -227,7 +227,7 @@ void add(char *buf, int fd)
         send(fd, "Start sending file\n", SIZE_BUFFER, 0);
         mkdir(dirName, 0777);
         if (writeFile(fd, dirName, fileName) == 0) {
-            fprintf(fp, "%s\t%s\t%s\n", client_path, publisher, year);
+            fprintf(fp, "%s/%s\t%s\t%s\n", dirName, fileName, publisher, year);
             printf("Store file finished\n");
             _log("add", fileName);
         } else {

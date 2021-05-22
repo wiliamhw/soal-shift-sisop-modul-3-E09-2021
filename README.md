@@ -136,7 +136,7 @@
 4. Print kelima data tersebut ke terminal client dengan perintah `send` atau `write`.
 
 ### Output
-![Output soal 1f](https://res.cloudinary.com/dx3jourdf/image/upload/v1620745746/Output_soal1f_prufvj.png)
+![Output soal 1f](https://res.cloudinary.com/dx3jourdf/image/upload/v1621669136/Output_soal1f_c0rkbu.png)
 
 
 ## Subsoal g
@@ -153,7 +153,7 @@
 5. Jika iya, print detail dari file tersebut ke terminal client.
 
 ### Output
-![Output soal 1g](https://res.cloudinary.com/dx3jourdf/image/upload/v1620748554/Output_soal1g_nygix9.png)
+![Output soal 1g](https://res.cloudinary.com/dx3jourdf/image/upload/v1621669132/Output_soal1g_ovx4wf.png)
 
 
 ## Subsoal h
