@@ -10,15 +10,15 @@
 
 void *factorial(void* arg)
 {
-    int *data = (int *)arg;
-    int k = 1;
+    long long int *data = (long long int *)arg;
+    long long int k = 1;
     if (data[0] >= data[1]) {
-        for (int a=data[0]; a>(data[0] - data[1]); a--) {
+        for (long long int a=data[0]; a>(data[0] - data[1]); a--) {
             k *= a;
         }
     }
     if (data[1] > data[0]) {
-        for (int a=data[0]; a>=1; a--) {
+        for (long long int a=data[0]; a>=1; a--) {
             k *= a;
         }
     }
@@ -26,7 +26,7 @@ void *factorial(void* arg)
         k = 0;
     }
       
-    int *p = (int*)malloc(sizeof(int));
+    long long int *p = (long long int*)malloc(sizeof(long long int));
     *p = k;
 
     pthread_exit(p);
@@ -63,11 +63,11 @@ void main()
     threads = (pthread_t*)malloc(max * sizeof(pthread_t));
 
     int count = 0;
-    int* data = NULL;
+    long long int* data = NULL;
 
     for (int i=0; i<r; i++) {
         for (int j=0; j<c; j++) {
-            data = (int *)malloc((max)*sizeof(int));
+            data = (long long int *)malloc((max)*sizeof(long long int));
             data[0] = (*value)[i][j];
             data[1] = matrixBaru[i][j];
             pthread_create(&threads[count++], NULL, factorial, (void*)(data));
@@ -79,8 +79,8 @@ void main()
         void *k;
         pthread_join(threads[i], &k);
 
-        int *p = (int *)k;
-        printf("%d", *p);
+        long long int *p = (long long int *)k;
+        printf("%lld", *p);
         if ((i + 1) % c == 0) printf("\n");
         else printf(" ");
     }
